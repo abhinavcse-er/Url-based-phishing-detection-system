@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Phishing Detection</title>
+
+  <!-- Fonts & Styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <!-- ✅ Use relative paths (works on PC + phone) -->
+  <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <header class="nav">
+    <div class="brand">Phishing Detection</div>
+    <nav>
+      <a href="index.html" class="active">Home</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+  </header>
+
+  <!-- Main content -->
+  <main class="container">
+    <!-- Hero -->
+    <section class="hero">
+      <img src="https://cdn.jsdelivr.net/gh/feathericons/feather@4.29.0/icons/shield.svg" alt="Shield Icon" />
+      <h1>Check for phishing</h1>
+      <p>Enter a URL to scan</p>
+
+      <div class="scan-box">
+        <input id="urlInput" type="text" placeholder="https://www.example.com" />
+        <button id="scanBtn">Scan</button>
+      </div>
+
+      <p id="hint" class="hint">Tip: you can paste URLs without http/https.</p>
+    </section>
+
+    <!-- Scan result -->
+    <section id="result" class="result hidden"></section>
+
+    <!-- How it works -->
+    <section class="how">
+      <h2>How it works</h2>
+      <ol>
+        <li>Enter URL</li>
+        <li>Scan</li>
+        <li>Get results instantly</li>
+      </ol>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">Built with HTML • CSS • JS • Python (FastAPI)</footer>
+
+  <!-- ✅ JS also relative -->
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - Phishing Detection Website</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+      background-color: #f5f7fa;
+      color: #222;
+    }
+    header {
+      background: #1a73e8;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+    }
+    header h1 {
+      margin: 0;
+    }
+    main {
+      padding: 30px;
+      max-width: 900px;
+      margin: auto;
+    }
+    h2 {
+      color: #1a73e8;
+      margin-top: 30px;
+    }
+    ul {
+      margin-left: 20px;
+    }
+    footer {
+      background: #1a73e8;
+      color: #fff;
+      text-align: center;
+      padding: 10px;
+      margin-top: 40px;
+    }
+    .card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Phishing Detection Website</h1>
+    <p>Mini Project - About</p>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Title</h2>
+      <p><strong>Phishing Detection Website using Machine Learning</strong></p>
+    </div>
+
+    <div class="card">
+      <h2>Abstract</h2>
+      <p>
+        This project focuses on creating a web-based system that identifies and blocks phishing websites to
+        safeguard users from cyber threats. Phishing attacks attempt to trick users into revealing sensitive
+        information such as passwords, credit card details, and personal data. The system analyzes various
+        features of a website—like URL length, presence of special characters, HTTPS certificate, domain age,
+        and content patterns. Using a trained machine learning model, the website is classified as Legitimate
+        or Phishing in real-time. The solution combines an interactive frontend with a secure backend to ensure
+        quick and accurate detection.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Objective</h2>
+      <p>
+        To prevent users from accessing malicious phishing websites using a machine learning model integrated
+        into a real-time web application.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>System Design & Components</h2>
+      <ul>
+        <li><b>Frontend:</b> HTML, CSS, JavaScript (for user interface and URL input)</li>
+        <li><b>Backend:</b> Flask or Django (for server-side processing)</li>
+        <li><b>Machine Learning Model:</b> Random Forest / SVM in Python</li>
+        <li><b>Dataset:</b> Phishing & legitimate website datasets</li>
+        <li><b>Hosting:</b> Heroku / Netlify / Localhost</li>
+        <li><b>Libraries:</b> Scikit-learn, Pandas, NumPy, tldextract, WHOIS</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Methodology</h2>
+      <ol>
+        <li>Data Collection: Gather phishing & legitimate website datasets.</li>
+        <li>Feature Extraction: Analyze URL-based, domain-based, and content-based features.</li>
+        <li>Model Training: Train ML classifier (Random Forest, SVM) using Python.</li>
+        <li>Backend Development: Integrate ML model with Flask/Django.</li>
+        <li>Frontend Development: Build an interface with HTML, CSS, JS.</li>
+        <li>Deployment: Host the application on a web server.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>Expected Output</h2>
+      <p>
+        A responsive website that accepts a URL as input and displays whether it is Safe or Phishing, along
+        with an explanation of the detection.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Application</h2>
+      <p>
+        The project demonstrates a web-based phishing detection tool that allows users to input a URL and
+        instantly verify whether it is phishing or safe.
+      </p>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2025 Phishing Detection Website | Mini Project</p>
+  </footer>
+</body>
+</html>
