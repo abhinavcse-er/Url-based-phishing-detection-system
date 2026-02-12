@@ -34,7 +34,7 @@ Recall: XX%
 This project is for educational purposes only.
 
 <br> 
-author --  Abhinav kumar mishra 
+Author --  Abhinav kumar Mishra 
 <br> 
 <center></center>
 i have created a url based phishing detection webpage . where you paste any url and you  will know does the url is llegitmate or not..
