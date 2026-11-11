@@ -1,150 +1,74 @@
-// ✅ Change this to your backend FastAPI URL (can be local IP or deployed domain)
-const API_BASE = "http://10.89.70.31:5500";
+(() => {
+  "use strict";
+  const form = document.getElementById("scanForm");
+  const input = document.getElementById("urlInput");
+  const button = document.getElementById("scanBtn");
+  const result = document.getElementById("result");
+  const hint = document.getElementById("hint");
+  const API_BASE = String(window.PHISHING_API_BASE || "").replace(/\/$/, "");
+  document.getElementById("year").textContent = new Date().getFullYear();
 
-
-// DOM elements
-const input = document.getElementById("urlInput");
-const btn = document.getElementById("scanBtn");
-const result = document.getElementById("result");
-
-// Event listeners
-btn.addEventListener("click", scan);
-input.addEventListener("keypress", e => { if (e.key === "Enter") scan(); });
-
-// ✅ Sanitize text before rendering to HTML
-function sanitize(s) {
-  return String(s).replace(/[<>&'"]/g, c => ({
-    "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&#39;", '"': "&quot;"
-  }[c]));
-}
-
-// ✅ Add commas to large numbers
-function formatNumber(n) {
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-// ✅ Query parameter inspection (basic ML-style feature extraction)
-function renderQueryParamsInfo(details) {
-  const urlObj = new URL(details.parsed_url);
-  let params = Array.from(urlObj.searchParams.entries());
-  const suspiciousWords = ["password", "login", "verify", "token", "session", "account"];
-  const suspiciousParams = params.some(([key, value]) =>
-    suspiciousWords.some(word =>
-      key.toLowerCase().includes(word) || value.toLowerCase().includes(word)
-    )
-  );
-
-  return `
-    <div>Query Params</div><div>${params.length}</div>
-    <div>Suspicious Params</div><div>${suspiciousParams ? "Yes" : "No"}</div>
-  `;
-}
-
-// ✅ ML-inspired risk interpretation
-function formatVerdict(score) {
-  if (score === 0) {
-    return {
-      label: "Benign",
-      explanation: `✅ Prediction: Benign — Model confidence: 100%. No malicious indicators detected.`
-    };
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
-  if (score > 0 && score <= 25) {
-    return {
-      label: "Low Risk",
-      explanation: `🟢 Prediction: Low Risk — Classified as likely safe with ${(100 - score).toFixed(1)}% confidence. Minor anomalies observed.`
-    };
+  function showError(message) {
+    result.className = "result error";
+    result.innerHTML = '<div class="result-top"><h3>Could not complete scan</h3><span class="verdict">ERROR</span></div><p class="result-summary">' + escapeHTML(message) + '</p>';
   }
-  if (score > 25 && score <= 50) {
-    return {
-      label: "Suspicious",
-      explanation: `🟡 Prediction: Suspicious — ${(100 - score).toFixed(1)}% confidence. Behavioral patterns partially match known malicious signatures. Further investigation recommended.`
-    };
+  function normalizeVerdict(label) {
+    const value = String(label || "").toLowerCase();
+    if (value.includes("phish") || value === "malicious" || value === "high risk") return "phishing";
+    if (value.includes("suspicious") || value.includes("medium")) return "suspicious";
+    return "safe";
   }
-  if (score > 50 && score <= 75) {
-    return {
-      label: "High Risk",
-      explanation: `🟠 Prediction: High Risk — Strong correlation with phishing or malicious activity detected (${score}% risk). Proceed with caution.`
-    };
+  function renderResult(data) {
+    const verdict = data && data.verdict ? data.verdict : {};
+    const details = data && data.details ? data.details : {};
+    const features = details.features || {};
+    const score = Math.max(0, Math.min(100, Number(verdict.risk_score) || 0));
+    const kind = normalizeVerdict(verdict.label);
+    const labels = {safe:"LOW RISK SIGNALS", suspicious:"SUSPICIOUS", phishing:"HIGH RISK"};
+    const summary = {safe:"No major warning signs were found by these checks. This does not guarantee the site is safe.",suspicious:"Some URL characteristics look unusual. Verify the domain independently before interacting.",phishing:"Several warning signs were detected. Avoid entering credentials or payment information."};
+    const reasons = Array.isArray(verdict.reasons) ? verdict.reasons : [];
+    const reasonHTML = reasons.length ? reasons.map(item => '<li>' + escapeHTML(item.reason || "Risk indicator") + ' (+' + escapeHTML(item.points ?? 0) + ')</li>').join("") : "<li>No configured warning indicators were triggered.</li>";
+    result.className = "result " + kind;
+    result.innerHTML = '<div class="result-top"><h3>Scan assessment</h3><span class="verdict">' + labels[kind] + '</span></div>' +
+      '<div class="score-line"><span>Heuristic risk score</span><strong>' + score + '/100</strong></div><div class="meter"><span style="width:' + score + '%"></span></div>' +
+      '<p class="result-summary">' + summary[kind] + '</p><h4>Signals found</h4><ul class="reason-list">' + reasonHTML + '</ul>' +
+      '<p class="result-url">Analyzed: ' + escapeHTML(details.parsed_url || input.value.trim()) + (features.uses_https === false ? ' · HTTP (not HTTPS)' : '') + '</p>';
   }
-  return {
-    label: "Malicious",
-    explanation: `❌ Prediction: Malicious — Classified as a high-confidence threat (${score}% risk). Immediate blocking or avoidance strongly advised.`
-  };
-}
-
-// ✅ Main scanning function
-async function scan() {
-  const url = input.value.trim();
-  if (!url) return;
-
-  btn.disabled = true;
-  btn.textContent = "Scanning…";
-  result.className = "result hidden"; // Reset classes
-  result.innerHTML = `<p>Scanning <strong>${sanitize(url)}</strong>…</p>`;
-  result.classList.remove("hidden");
-
-  try {
-    const res = await fetch(`${API_BASE}/api/scan`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url })
-    });
-
-    if (!res.ok) throw new Error("Scan failed");
-    const data = await res.json();
-
-    const v = data.verdict;
-    const f = data.details.features;
-    const verdictText = formatVerdict(v.risk_score);
-
-    // ✅ Add verdict class
-    if (v.risk_score === 0 || v.risk_score <= 25) result.classList.add("safe");
-    else if (v.risk_score <= 50) result.classList.add("warning");
-    else if (v.risk_score <= 75) result.classList.add("danger");
-    else result.classList.add("critical");
-
-    // ✅ Final result UI
-    result.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h3 style="margin:0;">Scan Result</h3>
-        <span class="badge">${sanitize(verdictText.label)}</span>
-      </div>
-      <p class="explanation">${sanitize(verdictText.explanation)}</p>
-
-      <div class="kv">
-        <div>URL</div><div>${sanitize(data.details.parsed_url)}</div>
-        <div>Domain</div><div>${sanitize(data.details.domain)}</div>
-        <div>Subdomain</div><div>${sanitize(data.details.subdomain || "(none)")}</div>
-        <div>Uses HTTPS</div><div>${f.uses_https ? "Yes" : "No"}</div>
-        <div>Suspicious TLD</div><div>${f.suspicious_tld ? "Yes" : "No"}</div>
-        <div>IP Host</div><div>${f.is_ip_host ? "Yes" : "No"}</div>
-        <div>URL Shortener</div><div>${f.uses_shortener ? "Yes" : "No"}</div>
-        <div>URL Length</div><div>${formatNumber(f.url_length)}</div>
-        <div>Host Length</div><div>${formatNumber(f.host_length)}</div>
-        <div>Dots in Host</div><div>${f.num_dots}</div>
-        <div>Digits in Host</div><div>${f.num_digits_host}</div>
-        ${renderQueryParamsInfo(data.details)}
-      </div>
-
-      <div class="reasons">
-        <h4>Why this verdict:</h4>
-        <ul>
-          ${v.reasons.length 
-            ? v.reasons.map(r => `<li>+${r.points} — ${sanitize(r.reason)}</li>`).join("")
-            : "<li>No major risks detected.</li>"}
-        </ul>
-      </div>
-    `;
-  } catch (err) {
-    result.classList.add("error");
-    result.innerHTML = `<p>Error: ${sanitize(err.message)}</p>`;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Scan";
+  async function scan(event) {
+    event.preventDefault();
+    const url = input.value.trim();
+    if (!url) { hint.textContent = "Please enter a URL to scan."; input.focus(); return; }
+    if (url.length > 2048) { showError("The URL is too long. Please use a shorter URL."); return; }
+    if (!API_BASE) { showError("The API endpoint has not been configured yet. Deploy the FastAPI backend and set PHISHING_API_BASE in api-config.js."); return; }
+    button.disabled = true;
+    button.querySelector("span").textContent = "Analyzing…";
+    result.className = "result";
+    result.innerHTML = '<p class="result-summary">Analyzing URL patterns. Please wait…</p>';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch(API_BASE + "/api/scan", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({url}), signal:controller.signal
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || "The API returned HTTP " + response.status + ".");
+      if (!data.verdict || !data.details) throw new Error("Unexpected response from the scan API.");
+      renderResult(data);
+    } catch (error) {
+      showError(error.name === "AbortError" ? "The server took too long to respond. It may be waking up; please try again." : (error.message || "Network error. Check the backend URL and CORS settings."));
+    } finally {
+      clearTimeout(timeout);
+      button.disabled = false;
+      button.querySelector("span").textContent = "Analyze URL";
+    }
   }
-}
-
-// ✅ Example (for dev console testing)
-// const test = formatVerdict(68);
-// console.log(test.label);
-// console.log(test.explanation);
+  form.addEventListener("submit", scan);
+  document.querySelectorAll("[data-example]").forEach(btn => btn.addEventListener("click", () => {
+    input.value = btn.dataset.example;
+    input.focus();
+  }));
+})();
