@@ -9,12 +9,15 @@ from pydantic import BaseModel, Field, field_validator
 
 app = FastAPI(title="PhishGuard URL Analysis API", version="3.0.0")
 
-origins = [item.strip() for item in os.getenv("ALLOWED_ORIGINS", "https://detectphishing.netlify.app,http://localhost:5500,http://127.0.0.1:5500").split(",") if item.strip()]
+configured_origins = [item.strip() for item in os.getenv("ALLOWED_ORIGINS", "").split(",") if item.strip()]
+required_origins = ["https://detectphishing.netlify.app", "http://localhost:5500", "http://127.0.0.1:5500"]
+# Keep the production frontend allowed even when Render has a custom ALLOWED_ORIGINS value.
+origins = list(dict.fromkeys(required_origins + configured_origins))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type"],
+    allow_headers=["*"],
 )
 
 class ScanRequest(BaseModel):
