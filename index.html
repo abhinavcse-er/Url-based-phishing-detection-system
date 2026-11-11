@@ -1,62 +1,51 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Phishing Detection</title>
-
-  <!-- Fonts & Styles -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080d1a">
+  <meta name="description" content="Analyze URLs for common phishing indicators with an explainable security check.">
+  <title>PhishGuard — URL Security Scanner</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
-  <!-- ✅ Use relative paths (works on PC + phone) -->
-  <link rel="stylesheet" href="static/styles.css">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./api-config.js"></script>
+  <script src="./app.js" defer></script>
 </head>
 <body>
-  <!-- Navigation -->
-  <header class="nav">
-    <div class="brand">Phishing Detection</div>
-    <nav>
-      <a href="index.html" class="active">Home</a>
-      <a href="about.html">About</a>
-      <a href="contact.html">Contact</a>
-    </nav>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="PhishGuard home"><span class="brand-mark">P</span><span>Phish<span class="brand-accent">Guard</span></span></a>
+    <nav aria-label="Main navigation"><a class="nav-active" href="#scanner">Scanner</a><a href="#how-it-works">How it works</a><a href="#about">About</a></nav>
+    <span class="status"><i></i> URL protection</span>
   </header>
-
-  <!-- Main content -->
-  <main class="container">
-    <!-- Hero -->
-    <section class="hero">
-      <img src="https://cdn.jsdelivr.net/gh/feathericons/feather@4.29.0/icons/shield.svg" alt="Shield Icon" />
-      <h1>Check for phishing</h1>
-      <p>Enter a URL to scan</p>
-
-      <div class="scan-box">
-        <input id="urlInput" type="text" placeholder="https://www.example.com" />
-        <button id="scanBtn">Scan</button>
+  <main>
+    <section class="hero" id="scanner">
+      <div class="eyebrow"><span class="eyebrow-line"></span> URL THREAT ANALYSIS <span class="eyebrow-line"></span></div>
+      <h1>Don't trust a link.<br><span>Verify it first.</span></h1>
+      <p class="hero-copy">Check a URL for common phishing signals before you click. Fast, clear, and easy to understand.</p>
+      <div class="scanner-card">
+        <div class="scanner-heading"><span class="scanner-icon">⌕</span><div><strong>URL Scanner</strong><small>Paste a website address to analyze it</small></div></div>
+        <form id="scanForm" novalidate>
+          <label class="sr-only" for="urlInput">Website URL</label>
+          <div class="input-wrap"><span class="link-icon">↗</span><input id="urlInput" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" maxlength="2048" required><button id="scanBtn" type="submit"><span>Analyze URL</span><b>→</b></button></div>
+          <p id="hint" class="hint">Enter a full URL or a domain name. We don't open the submitted website.</p>
+        </form>
+        <div class="examples"><span>Try an example:</span><button type="button" data-example="https://www.google.com">google.com</button><button type="button" data-example="http://paypal-login-security.example.com">Suspicious URL</button></div>
+        <div id="result" class="result hidden" aria-live="polite"></div>
       </div>
-
-      <p id="hint" class="hint">Tip: you can paste URLs without http/https.</p>
+      <div class="trust-row"><span>◈ Explainable checks</span><span>⌁ No website visit</span><span>◉ Privacy-minded</span></div>
     </section>
-
-    <!-- Scan result -->
-    <section id="result" class="result hidden"></section>
-
-    <!-- How it works -->
-    <section class="how">
-      <h2>How it works</h2>
-      <ol>
-        <li>Enter URL</li>
-        <li>Scan</li>
-        <li>Get results instantly</li>
-      </ol>
+    <section class="info-section" id="how-it-works">
+      <div class="section-kicker">SIMPLE. TRANSPARENT. USEFUL.</div><h2>Understand the link<br>before you trust it.</h2>
+      <div class="steps">
+        <article><span class="step-no">01</span><div class="step-icon">↗</div><h3>Paste a URL</h3><p>Submit the link you received in a message, email, or website.</p></article>
+        <article><span class="step-no">02</span><div class="step-icon">⌕</div><h3>Analyze signals</h3><p>We inspect URL structure, domain patterns, and common warning signs.</p></article>
+        <article><span class="step-no">03</span><div class="step-icon">✓</div><h3>Review the result</h3><p>See a risk estimate and the indicators that influenced the result.</p></article>
+      </div>
     </section>
+    <section class="notice" id="about"><span class="notice-icon">!</span><div><strong>Security note</strong><p>This is an educational heuristic scanner, not a guarantee or a live threat-intelligence service. A low-risk result does not prove a website is safe. When in doubt, don't enter passwords or payment details.</p></div></section>
   </main>
-
-  <!-- Footer -->
-  <footer class="footer">Built with HTML • CSS • JS • Python (FastAPI)</footer>
-
-  <!-- ✅ JS also relative -->
-  <script src="/static/app.js" defer></script>
+  <footer><a class="brand footer-brand" href="./"><span class="brand-mark">P</span><span>Phish<span class="brand-accent">Guard</span></span></a><span>Built for safer browsing · Educational project</span><span>© <span id="year"></span></span></footer>
 </body>
 </html>
