@@ -4,12 +4,36 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#080d1a">
-  <meta name="description" content="Analyze URLs for common phishing indicators with an explainable security check.">
-  <title>PhishGuard — URL Security Scanner</title>
+  <meta name="description" content="Check suspicious links with PhishGuard, a free URL phishing checker. Analyze URL structure and common phishing warning signs before you click.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://detectphishing.netlify.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="PhishGuard">
+  <meta property="og:title" content="PhishGuard — Free URL Phishing Checker">
+  <meta property="og:description" content="Check suspicious links before you click. Review URL patterns and common phishing warning signs with PhishGuard.">
+  <meta property="og:url" content="https://detectphishing.netlify.app/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="PhishGuard — Free URL Phishing Checker">
+  <meta name="twitter:description" content="Analyze suspicious URLs for common phishing warning signs before you click.">
+  <title>Free URL Phishing Checker &amp; Link Safety Scanner | PhishGuard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "PhishGuard",
+    "url": "https://detectphishing.netlify.app/",
+    "description": "A free educational URL phishing checker that analyzes website addresses for common phishing warning signs.",
+    "applicationCategory": "SecurityApplication",
+    "operatingSystem": "Any",
+    "browserRequirements": "Requires JavaScript and a modern web browser",
+    "author": {"@type": "Person", "name": "Abhinav Kumar Mishra", "url": "https://github.com/abhinavcse-er"},
+    "offers": {"@type": "Offer", "price": "0", "priceCurrency": "INR"}
+  }
+  </script>
   <script src="./api-config.js"></script>
   <script src="./app.js" defer></script>
 </head>
@@ -50,7 +74,34 @@
         <article><span class="step-no">03</span><div class="step-icon">✓</div><h3>Review the result</h3><p>See a risk estimate and the indicators that influenced the result.</p></article>
       </div>
     </section>
-    <section class="notice" id="about"><span class="notice-icon">!</span><div><strong>Security note</strong><p>This is an educational heuristic scanner, not a guarantee or a live threat-intelligence service. A low-risk result does not prove a website is safe. When in doubt, don't enter passwords or payment details.</p></div></section>
+    <section class="about-section" id="about">
+      <div class="section-kicker">ABOUT THE PROJECT</div>
+      <h2>Helping people pause<br>before clicking suspicious links.</h2>
+      <div class="about-content">
+        <div class="about-copy">
+          <h3>What is PhishGuard?</h3>
+          <p>PhishGuard is a free, educational URL phishing detection project created by <strong>Abhinav Kumar Mishra</strong>. It helps users inspect a website address for common phishing indicators before opening a link.</p>
+          <p>The scanner checks URL characteristics such as suspicious wording, unusual hostname patterns, IP-based addresses and other configured warning signals. It then presents a risk estimate with reasons, so users can better understand what triggered a warning.</p>
+          <h3>Why use a URL checker?</h3>
+          <p>Phishing links can imitate trusted websites to trick people into sharing passwords, financial details or personal information. Checking an unfamiliar URL is one useful precaution—but it should never replace careful browsing habits.</p>
+          <p class="about-author">Project creator: <a href="https://github.com/abhinavcse-er" target="_blank" rel="noopener noreferrer">Abhinav Kumar Mishra on GitHub</a></p>
+        </div>
+        <aside class="about-facts">
+          <div><span>01</span><strong>Explainable results</strong><small>See the warning signals behind a scan.</small></div>
+          <div><span>02</span><strong>URL-focused checks</strong><small>The submitted website is not opened by this scanner.</small></div>
+          <div><span>03</span><strong>Educational purpose</strong><small>Learn to recognize suspicious link patterns.</small></div>
+        </aside>
+      </div>
+    </section>
+    <section class="faq-section" aria-labelledby="faq-title">
+      <div class="section-kicker">QUICK ANSWERS</div>
+      <h2 id="faq-title">Frequently asked questions</h2>
+      <details><summary>How does PhishGuard check a URL?</summary><p>It analyzes the submitted URL for configured warning signals, including URL structure and suspicious hostname patterns, then displays a heuristic risk score and the reasons behind it.</p></details>
+      <details><summary>Does a low-risk result mean a website is safe?</summary><p>No. A low-risk result does not guarantee safety. New phishing websites and sophisticated scams may not trigger the checks. Verify the website address independently and never share sensitive information on an unfamiliar site.</p></details>
+      <details><summary>Does PhishGuard open the link I submit?</summary><p>No. The current scanner analyzes the URL string and does not visit or fetch the submitted website.</p></details>
+      <details><summary>Is PhishGuard a live threat-intelligence service?</summary><p>No. It is an educational heuristic scanner, not a guarantee, antivirus product or live threat-intelligence feed.</p></details>
+    </section>
+    <section class="notice" aria-label="Important security limitation"><span class="notice-icon">!</span><div><strong>Security note</strong><p>PhishGuard provides educational risk indicators, not a definitive safety verdict. A low score does not prove a website is safe. When in doubt, don't enter passwords or payment details.</p></div></section>
   </main>
   <footer class="site-footer">
     <a class="brand footer-brand" href="./" aria-label="PhishGuard home">
