@@ -29,12 +29,20 @@
     const kind = normalizeVerdict(verdict.label);
     const labels = {safe:"LOW RISK SIGNALS", suspicious:"SUSPICIOUS", phishing:"HIGH RISK"};
     const summary = {safe:"No major warning signs were found by these checks. This does not guarantee the site is safe.",suspicious:"Some URL characteristics look unusual. Verify the domain independently before interacting.",phishing:"Several warning signs were detected. Avoid entering credentials or payment information."};
+    const ml = data && data.ml_result ? data.ml_result : null;
+    const mlHTML = data && data.ml_status === "used" && ml
+      ? '<div class="ml-result"><strong>ML model assessment</strong><span>' + escapeHTML(ml.ml_label_text || "Unknown") + ' · Class ' + escapeHTML(ml.ml_label) + '</span>' +
+        (ml.ml_phishing_probability !== null && ml.ml_phishing_probability !== undefined
+          ? '<small>Estimated phishing probability: ' + Math.round(Number(ml.ml_phishing_probability) * 100) + '%</small>'
+          : '<small>Probability estimate unavailable</small>') +
+        '<small class="ml-note">Model estimate, not a guarantee of website safety.</small></div>'
+      : '<div class="ml-result"><strong>ML model assessment</strong><small>Unavailable for this scan.</small></div>';
     const reasons = Array.isArray(verdict.reasons) ? verdict.reasons : [];
     const reasonHTML = reasons.length ? reasons.map(item => '<li>' + escapeHTML(item.reason || "Risk indicator") + ' (+' + escapeHTML(item.points ?? 0) + ')</li>').join("") : "<li>No configured warning indicators were triggered.</li>";
     result.className = "result " + kind;
     result.innerHTML = '<div class="result-top"><h3>Scan assessment</h3><span class="verdict">' + labels[kind] + '</span></div>' +
       '<div class="score-line"><span>Heuristic risk score</span><strong>' + score + '/100</strong></div><div class="meter"><span style="width:' + score + '%"></span></div>' +
-      '<p class="result-summary">' + summary[kind] + '</p><h4>Signals found</h4><ul class="reason-list">' + reasonHTML + '</ul>' +
+      '<p class="result-summary">' + summary[kind] + '</p><h4>Signals found</h4><ul class="reason-list">' + reasonHTML + '</ul>' + mlHTML +
       '<p class="result-url">Analyzed: ' + escapeHTML(details.parsed_url || input.value.trim()) + (features.uses_https === false ? ' · HTTP (not HTTPS)' : '') + '</p>';
   }
   async function scan(event) {
