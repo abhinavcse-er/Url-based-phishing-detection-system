@@ -207,8 +207,10 @@ def health():
             "test_unique_hosts": ML_METADATA.get("test_unique_hosts"),
         } if ML_MODEL is not None else None,
         "ml_calibration": calibration_metrics if ML_MODEL is not None else None,
-        "ml_evaluation_note": ML_METADATA.get("probabilities_are_real_world_prevalence_estimates") is False
-        and "Benchmark calibration only; not a real-world phishing probability." or None,
+        "ml_evaluation_note": (
+            "Calibration reflects a balanced benchmark only; it is not a real-world phishing probability."
+            if ML_MODEL is not None else None
+        ),
     }
 
 
