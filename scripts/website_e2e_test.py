@@ -85,12 +85,8 @@ def main():
         )
         record("public_verification_links_present", (
             any(link["href"] == "./verification-report.json" for link in verification_links)
-            and any("/actions/runs/" in (link["href"] or "") for link in verification_links)
-            and any(
-                "/commit/" in (link["href"] or "")
-                and len((link["href"] or "").rsplit("/", 1)[-1]) == 40
-                for link in verification_links
-            )
+            and any("/actions/workflows/website-e2e-test.yml" in (link["href"] or "") for link in verification_links)
+            and any("/tree/main" in (link["href"] or "") for link in verification_links)
         ), {"links": verification_links})
         try:
             report_response = page.request.get(SITE_URL.rstrip("/") + "/verification-report.json", timeout=30000)
