@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - "scripts/website_e2e_test.py"
+      - "verification-report.json"
+      - "phreshphish-external-validation-report.json"
+      - ".github/workflows/website-e2e-test.yml"
       - "scripts/smoke_test_heuristics.py"
       - ".github/workflows/website-e2e-test.yml"
       - "server.py"
