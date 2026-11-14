@@ -18,17 +18,33 @@ logger = logging.getLogger("phishguard")
 
 app = FastAPI(title="PhishGuard URL Analysis API", version="3.4.0")
 
-# Setting ENABLE_ML_INFERENCE alone is not sufficient. Live inference also
-# requires an explicit operator approval after an independent external test.
+def ml_inference_gate(
+    inference_requested: bool,
+    external_validation_approved: bool,
+    release_gate_status: str | None,
+    release_gate_passed: bool,
+) -> bool:
+    """Require runtime opt-in plus a manually approved, passing model artifact."""
+    return bool(
+        inference_requested
+        and external_validation_approved
+        and release_gate_status == "approved"
+        and release_gate_passed is True
+    )
+
+
+# Both runtime switches are necessary but deliberately not sufficient. The
+# loaded artifact must also carry a manually reviewed, passing release gate.
 ML_INFERENCE_REQUESTED = os.getenv("ENABLE_ML_INFERENCE", "false").strip().lower() in {
     "1", "true", "yes", "on"
 }
 ML_EXTERNAL_VALIDATION_APPROVED = os.getenv(
     "ML_EXTERNAL_VALIDATION_APPROVED", "false"
 ).strip().lower() in {"1", "true", "yes", "on"}
-ML_INFERENCE_ENABLED = (
+ML_RUNTIME_APPROVAL_ENABLED = (
     ML_INFERENCE_REQUESTED and ML_EXTERNAL_VALIDATION_APPROVED
 )
+ML_INFERENCE_ENABLED = False
 
 DOMAIN_EXTRACTOR = tldextract.TLDExtract(
     suffix_list_urls=(),
@@ -92,6 +108,13 @@ except Exception:
     logger.exception("Could not load ML model; heuristic analysis will remain available.")
     ML_MODEL = None
     ML_METADATA = {}
+
+ML_INFERENCE_ENABLED = ml_inference_gate(
+    ML_INFERENCE_REQUESTED,
+    ML_EXTERNAL_VALIDATION_APPROVED,
+    ML_METADATA.get("release_gate", {}).get("status"),
+    ML_METADATA.get("release_gate", {}).get("passed") is True,
+)
 
 
 class ScanRequest(BaseModel):
@@ -280,6 +303,12 @@ def assess_with_ml(url: str) -> dict:
                 "ML inference was requested, but independent external validation "
                 "has not been operator-approved. The model does not influence this scan."
             )
+        elif ML_RUNTIME_APPROVAL_ENABLED:
+            reason = (
+                "Runtime approval switches are enabled, but the model artifact is not "
+                "marked as manually approved with a passing external release gate. "
+                "The model does not influence this scan."
+            )
         else:
             reason = (
                 "The v4 model candidate is loaded for diagnostics, but live inference "
@@ -324,14 +353,6 @@ def assess_with_ml(url: str) -> dict:
             "ml_reason": "Prediction failed; heuristic analysis is still available.",
             "ml_result": None,
         }
-
-
-def ml_inference_gate(
-    inference_requested: bool,
-    external_validation_approved: bool,
-) -> bool:
-    """Require both explicit runtime opt-in and independent-validation approval."""
-    return bool(inference_requested and external_validation_approved)
 
 
 @app.get("/")
