@@ -3,6 +3,7 @@ name: V4 independent PhreshPhish evaluation
 on:
   push:
     branches:
+      - main
       - ml-model-v4-hybrid
     paths:
       - "evaluate_external.py"
