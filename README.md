@@ -68,6 +68,42 @@ The source data is a balanced sample from the public [Phishing URL Dataset by Ra
 
 Before enabling model inference, obtain a separately sourced and independently labelled CSV with both benign and phishing examples. Keep source provenance, collection dates, label definitions, and redistribution terms.
 
+### Recommended public GitHub evaluation CSV: PhreshPhish
+
+A pinned URL-only export is available in the public GitHub repository [aI-area/PhishDetecting](https://github.com/aI-area/PhishDetecting):
+
+- [Download the compressed CSV from GitHub](https://github.com/aI-area/PhishDetecting/blob/main/dataset/PhreshPhish/test_url_metadata.csv.gz)
+- [Direct raw download](https://raw.githubusercontent.com/aI-area/PhishDetecting/main/dataset/PhreshPhish/test_url_metadata.csv.gz)
+- [Dataset README, source counts, and label meaning](https://github.com/aI-area/PhishDetecting/blob/main/dataset/PhreshPhish/README.md)
+- [Pinned metadata and SHA-256 checksums](https://github.com/aI-area/PhishDetecting/blob/main/dataset/PhreshPhish/metadata.json)
+
+The documented released test split contains 91,260 benign and 76,800 phishing URLs (168,060 total). Its eligible URL-disjoint cohort has 166,227 rows, and its stricter source-domain-disjoint subset has 141,623 rows (67,421 benign and 74,202 phishing). The exported file uses the `url` and `source_label` columns, with `benign` and `phish` labels; it is gzip-compressed CSV, which pandas can read directly by the `.csv.gz` extension. Upstream terms are CC BY 4.0 for anti-phishing research; retain attribution to the PhreshPhish authors.
+
+The source project documents this as separate from its PhishTank and PhishFusion cohorts and says its PhreshPhish export excludes exact/normalized PhishFusion URL overlap; its stricter subset also excludes PhishFusion registered-domain overlap. The v4 evaluator additionally checks overlap against the domains actually used by the PhishGuard v4 development sample. Do not infer independence from a filename alone: retain the generated overlap report and inspect the result counts.
+
+Download the raw file, then run:
+
+~~~bash
+curl -L "https://raw.githubusercontent.com/aI-area/PhishDetecting/main/dataset/PhreshPhish/test_url_metadata.csv.gz" -o phreshphish_test_url_metadata.csv.gz
+~~~
+
+Verify the compressed file using the SHA-256 value published in the upstream [metadata.json](https://github.com/aI-area/PhishDetecting/blob/main/dataset/PhreshPhish/metadata.json), then run:
+
+~~~bash
+python evaluate_external.py \
+  --dataset phreshphish_test_url_metadata.csv.gz \
+  --url-column url \
+  --label-column source_label \
+  --phishing-label phish \
+  --benign-label benign \
+  --minimum-per-class 500 \
+  --max-fpr 0.01 \
+  --min-recall 0.80 \
+  --output phreshphish_external_validation_report.json
+~~~
+
+This evaluation command never opens the submitted URLs. It checks and reports the subset of sites not present in the v4 development-site manifest. Review the dataset paper, license, dates, label provenance, overlap counts, and false-positive examples before treating the result as a release decision.
+
 Example for a CSV with URL and Label columns where 0=phishing and 1=legitimate:
 
 ~~~bash
