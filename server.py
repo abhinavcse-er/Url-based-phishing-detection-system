@@ -1,10 +1,12 @@
 import ipaddress
 import logging
 import os
+import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import joblib
+import tldextract
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
@@ -12,7 +14,18 @@ from pydantic import BaseModel, Field, field_validator
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("phishguard")
 
-app = FastAPI(title="PhishGuard URL Analysis API", version="3.2.0")
+app = FastAPI(title="PhishGuard URL Analysis API", version="3.3.0")
+
+# The current URL-text model produced unacceptable false positives on an
+# external popular-domain probe. Keep it loaded for diagnostics, but do not
+# let it influence user-facing scans until it passes a new external release gate.
+ML_INFERENCE_ENABLED = os.getenv("ENABLE_ML_INFERENCE", "false").strip().lower() in {
+    "1", "true", "yes", "on"
+}
+DOMAIN_EXTRACTOR = tldextract.TLDExtract(
+    suffix_list_urls=(),
+    fallback_to_snapshot=True,
+)
 
 configured_origins = [item.strip() for item in os.getenv("ALLOWED_ORIGINS", "").split(",") if item.strip()]
 required_origins = ["https://detectphishing.netlify.app", "https://abhinavcse-er.github.io", "http://localhost:5500", "http://127.0.0.1:5500"]
@@ -86,6 +99,35 @@ SHORTENERS = {"bit.ly", "tinyurl.com", "t.co", "ow.ly", "is.gd", "cutt.ly", "rb.
 BRANDS = {"paypal", "google", "apple", "microsoft", "amazon", "netflix", "instagram", "facebook", "bank"}
 
 
+def tokenize(value: str) -> set[str]:
+    return set(re.findall(r"[a-z0-9]+", (value or "").lower()))
+
+
+# Exact legitimate registrable domains for the brands the heuristic checks.
+# This is not a blanket allowlist: only an exact registrable-domain match counts.
+BRAND_DOMAINS = {
+    "paypal": {"paypal.com", "paypal.co.uk", "paypal.me"},
+    "google": {"google.com", "google.co.uk", "google.co.in"},
+    "apple": {"apple.com"},
+    "microsoft": {"microsoft.com"},
+    "amazon": {"amazon.com", "amazon.in", "amazon.co.uk"},
+    "netflix": {"netflix.com"},
+    "instagram": {"instagram.com"},
+    "facebook": {"facebook.com", "fb.com"},
+}
+SUSPICIOUS_HOST_WORDS = {
+    "login", "signin", "signon", "verify", "verification", "secure",
+    "password", "account", "update", "wallet", "billing", "confirm",
+    "support", "auth", "recover", "unlock", "webscr",
+}
+
+
+def registered_domain_for(host: str) -> tuple[str, str]:
+    extracted = DOMAIN_EXTRACTOR(host)
+    registered = extracted.top_domain_under_public_suffix or host
+    return registered.lower(), extracted.subdomain.lower()
+
+
 def analyze(url: str) -> dict:
     parsed = urlsplit(url)
     host = (parsed.hostname or "").lower().rstrip(".")
@@ -95,52 +137,82 @@ def analyze(url: str) -> dict:
     except ValueError:
         is_ip = False
 
+    registered_domain, subdomain = registered_domain_for(host)
     labels = host.split(".")
-    suffix = labels[-1] if len(labels) > 1 else ""
-    registered_hint = ".".join(labels[-2:]) if len(labels) > 1 else host
+    registered_labels = tokenize(registered_domain.replace(".", " "))
+    host_tokens = tokenize(host)
     path_query = (parsed.path + "?" + parsed.query).lower()
-    host_is_brand = any(brand in registered_hint for brand in BRANDS)
-    brand_in_path = any(brand in path_query for brand in BRANDS)
+    path_tokens = tokenize(path_query)
+    suffix = labels[-1] if len(labels) > 1 else ""
+    hostname_brands = {
+        brand for brand in BRAND_DOMAINS
+        if any(brand in tokenize(label) for label in labels)
+    }
+    path_brands = {brand for brand in BRAND_DOMAINS if brand in path_tokens}
+    spoofed_host_brands = {
+        brand for brand in hostname_brands
+        if registered_domain not in BRAND_DOMAINS[brand]
+    }
+    spoofed_path_brands = {
+        brand for brand in path_brands
+        if registered_domain not in BRAND_DOMAINS[brand]
+    }
+    spoofed_brands = spoofed_host_brands | spoofed_path_brands
+    suspicious_host_words = sorted(host_tokens & SUSPICIOUS_HOST_WORDS)
+    suspicious_path_words = sorted(path_tokens & SUSPICIOUS_HOST_WORDS)
+    suspicious_words = sorted(set(suspicious_host_words + suspicious_path_words))
+
     features = {
         "uses_https": parsed.scheme == "https",
         "is_ip_host": is_ip,
         "suspicious_tld": suffix in SUSPICIOUS_TLDS,
         "uses_shortener": host in SHORTENERS,
         "has_at_symbol": "@" in url,
-        "has_hyphen": "-" in (labels[-2] if len(labels) > 1 else host),
+        "has_hyphen": any("-" in label for label in labels),
         "url_length": len(url),
         "host_length": len(host),
         "num_dots": host.count("."),
         "num_digits_host": sum(char.isdigit() for char in host),
         "contains_punycode": "xn--" in host,
-        "brand_mismatch": brand_in_path and not host_is_brand,
-        "keyword_in_path": any(word in path_query for word in ("login", "verify", "update", "secure", "password", "account")),
-        "has_many_subdomains": len(labels) >= 5,
+        "brand_mismatch": bool(spoofed_brands),
+        "brand_impersonation": bool(spoofed_host_brands),
+        "keyword_in_host_or_path": bool(suspicious_words),
+        "suspicious_host_words": suspicious_host_words,
+        "suspicious_path_words": suspicious_path_words,
+        "has_many_subdomains": len([item for item in subdomain.split(".") if item]) >= 3,
     }
     checks = [
-        (12, "URL does not use HTTPS", not features["uses_https"]),
-        (22, "Host is an IP address", is_ip),
+        (8, "URL does not use HTTPS", not features["uses_https"]),
+        (24, "Host is an IP address", is_ip),
         (18, "Suspicious top-level domain", features["suspicious_tld"]),
-        (12, "Known URL shortener", features["uses_shortener"]),
-        (10, "Brand name appears in path/query but not the registered-domain hint", features["brand_mismatch"]),
-        (10, "Unusually many subdomain labels", features["has_many_subdomains"]),
-        (8, "Punycode hostname", features["contains_punycode"]),
-        (6, "Long URL", len(url) > 100),
+        (10, "Known URL shortener", features["uses_shortener"]),
+        (35, "A known brand appears in the hostname or URL path but not in its legitimate registrable domain", features["brand_mismatch"]),
+        (8, "Unusually many subdomains", features["has_many_subdomains"]),
+        (12, "Punycode hostname", features["contains_punycode"]),
+        (6, "Long URL", len(url) > 120),
         (5, "Many digits in hostname", features["num_digits_host"] >= 5),
-        (5, "Login/security-related words in path or query", features["keyword_in_path"]),
-        (4, "Hyphen in domain label", features["has_hyphen"]),
-        (4, "At-sign present in URL", features["has_at_symbol"]),
+        (8, "Login, verification, account or security wording in hostname/path", features["keyword_in_host_or_path"]),
+        (4, "Hyphenated hostname labels", features["has_hyphen"]),
+        (10, "At-sign present in URL", features["has_at_symbol"]),
     ]
-    triggered = [{"points": points, "reason": reason} for points, reason, condition in checks if condition]
+    triggered = [
+        {"points": points, "reason": reason}
+        for points, reason, condition in checks if condition
+    ]
     risk_score = min(100, sum(item["points"] for item in triggered))
-    label = "likely_phishing" if risk_score >= 60 else "suspicious" if risk_score >= 30 else "probably_safe"
+    label = (
+        "likely_phishing" if risk_score >= 60
+        else "suspicious" if risk_score >= 25
+        else "probably_safe"
+    )
     return {
         "details": {
             "parsed_url": url,
-            "domain": registered_hint,
+            "domain": registered_domain,
             "hostname": host,
-            "subdomain": ".".join(labels[:-2]) if len(labels) > 2 else "",
+            "subdomain": subdomain,
             "features": features,
+            "matched_brand_indicators": sorted(spoofed_brands),
         },
         "verdict": {"risk_score": risk_score, "label": label, "reasons": triggered},
     }
@@ -148,7 +220,16 @@ def analyze(url: str) -> dict:
 
 def assess_with_ml(url: str) -> dict:
     if ML_MODEL is None:
-        return {"ml_status": "unavailable", "ml_result": None}
+        return {"ml_status": "unavailable", "ml_reason": "No model artifact is loaded.", "ml_result": None}
+    if not ML_INFERENCE_ENABLED:
+        return {
+            "ml_status": "disabled",
+            "ml_reason": (
+                "Temporarily disabled after external testing found false positives on "
+                "well-known legitimate domains. ML does not influence this scan's verdict."
+            ),
+            "ml_result": None,
+        }
     try:
         predicted_label = int(ML_MODEL.predict([url])[0])
         is_phishing = predicted_label == 1
@@ -164,7 +245,7 @@ def assess_with_ml(url: str) -> dict:
         }
     except Exception:
         logger.exception("ML prediction failed; returning heuristic result only.")
-        return {"ml_status": "error", "ml_result": None}
+        return {"ml_status": "error", "ml_reason": "Prediction failed.", "ml_result": None}
 
 
 @app.get("/")
@@ -174,6 +255,11 @@ def root():
         "status": "ok",
         "docs": "/docs",
         "ml_model": "loaded" if ML_MODEL is not None else "unavailable",
+        "ml_inference_status": (
+            "enabled" if ML_MODEL is not None and ML_INFERENCE_ENABLED
+            else "disabled_pending_external_validation" if ML_MODEL is not None
+            else "unavailable"
+        ),
     }
 
 
@@ -186,6 +272,11 @@ def health():
     return {
         "status": "healthy",
         "ml_model": "loaded" if ML_MODEL is not None else "unavailable",
+        "ml_inference_status": (
+            "enabled" if ML_MODEL is not None and ML_INFERENCE_ENABLED
+            else "disabled_pending_external_validation" if ML_MODEL is not None
+            else "unavailable"
+        ),
         "ml_evaluation_status": (
             "available" if evaluation_available
             else "retrain_required" if ML_MODEL is not None
