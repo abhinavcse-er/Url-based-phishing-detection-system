@@ -78,6 +78,34 @@ def main():
             "configured_api": page.evaluate("window.PHISHING_API_BASE")
         })
 
+        verification_section = page.locator("#verification")
+        record("public_verification_section_present", verification_section.count() == 1 and verification_section.is_visible())
+        verification_links = verification_section.locator("a").evaluate_all(
+            "(links) => links.map(link => ({text: link.textContent.trim(), href: link.getAttribute('href')}))"
+        )
+        record("public_verification_links_present", (
+            any(link["href"] == "./verification-report.json" for link in verification_links)
+            and any("actions/runs/43570865595" in (link["href"] or "") for link in verification_links)
+            and any("commit/73ffc4c50cc0cc7624fe7b16089dad8839c27693" in (link["href"] or "") for link in verification_links)
+        ), {"links": verification_links})
+        try:
+            report_response = page.request.get(SITE_URL.rstrip("/") + "/verification-report.json", timeout=30000)
+            public_report = report_response.json()
+            report_summary = public_report.get("summary", {})
+            report_ok = (
+                report_response.status == 200
+                and public_report.get("status") == "passed"
+                and report_summary.get("overall_regression_result") == "PASS"
+                and report_summary.get("url_regression_cases_passed") == 10
+            )
+            record("public_json_report_accessible_and_valid", report_ok, {
+                "http_status": report_response.status,
+                "report_status": public_report.get("status"),
+                "summary": report_summary,
+            })
+        except Exception as exc:
+            record("public_json_report_accessible_and_valid", False, {"error": str(exc)})
+
         # Verify the API health endpoint directly as well as through browser CORS.
         try:
             health_response = page.request.get(API_URL + "/health", timeout=30000)
