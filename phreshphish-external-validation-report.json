@@ -1,0 +1,104 @@
+{
+  "report_type": "independent_external_url_model_evaluation",
+  "generated_at_utc": "2026-11-14T08:59:00Z",
+  "model_version": 4,
+  "selected_model": "hybrid_text_and_url_features",
+  "source_commit": "f200ea28df406654ce18630748da29b5bb5609b9",
+  "validation_run": {
+    "id": 43577785231,
+    "url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43577785231"
+  },
+  "datasets": {
+    "phreshphish_sha256": "ecc1efc3a8207f91b3953546011da5f35bc17907e7ae96ada6beb6635efa6dd7",
+    "phishfusion_git_blob_sha": "b698ebad3a81bf81c3868f60b1d1fefb4f1e2361",
+    "phishfusion_sha256": "c8af8da76bb6a521fcb7515eab802fec450dd10eafdfb49593096dcc07f1de8c",
+    "url_hashes_verified": 168060
+  },
+  "cleaning": {
+    "input_rows": 168060,
+    "invalid_or_non_http_url_rows_removed": 1622,
+    "overlength_rows_removed": 11,
+    "normalized_duplicate_rows_removed": 205,
+    "normalized_label_conflict_rows_removed": 0,
+    "rows_before_source_overlap": 166222,
+    "phishfusion_normalized_url_overlap_excluded": 17
+  },
+  "development_source_holdout": {
+    "rows": 10000,
+    "accuracy": 0.996,
+    "false_positive_rate": 0.0024,
+    "false_negative_rate": 0.0056,
+    "roc_auc": 0.99886,
+    "note": "Internal development-source test only; not independent external validation."
+  },
+  "external_cohorts": {
+    "url_disjoint": {
+      "rows": 166205,
+      "benign": 89694,
+      "phishing": 76511,
+      "accuracy": 0.461063,
+      "false_positive_rate": 0.946663,
+      "false_negative_rate": 0.060959,
+      "recall_phishing": 0.939041,
+      "roc_auc": 0.413697,
+      "mcc": -0.016406
+    },
+    "phishfusion_source_domain_disjoint": {
+      "rows": 139242,
+      "benign": 67427,
+      "phishing": 71815,
+      "accuracy": 0.515218,
+      "false_positive_rate": 0.932134,
+      "false_negative_rate": 0.064764,
+      "recall_phishing": 0.935236,
+      "roc_auc": 0.423404,
+      "mcc": 0.006233
+    },
+    "strict_development_domain_disjoint": {
+      "rows": 108928,
+      "unique_sites": 62651,
+      "benign": 64380,
+      "phishing": 44548,
+      "decision_threshold": 0.3828154273,
+      "accuracy": 0.40759,
+      "balanced_accuracy": 0.482879,
+      "precision_phishing": 0.399938,
+      "recall_phishing": 0.896404,
+      "f1_phishing": 0.553104,
+      "false_positive_rate": 0.930646,
+      "false_negative_rate": 0.103596,
+      "roc_auc": 0.505832,
+      "average_precision": 0.486592,
+      "mcc": -0.060903,
+      "confusion_matrix": {
+        "true_negative": 4465,
+        "false_positive": 59915,
+        "false_negative": 4615,
+        "true_positive": 39933
+      }
+    }
+  },
+  "release_gate": {
+    "maximum_allowed_false_positive_rate": 0.01,
+    "minimum_required_phishing_recall": 0.8,
+    "no_phishfusion_url_overlap": true,
+    "no_phishfusion_registered_domain_overlap": true,
+    "no_development_registered_domain_overlap": true,
+    "minimum_per_class_met": true,
+    "false_positive_rate_gate_passed": false,
+    "phishing_recall_gate_passed": true,
+    "candidate_passed": false
+  },
+  "release_decision": {
+    "status": "FAILED_DO_NOT_ENABLE",
+    "live_ml_inference_enabled": false,
+    "reason": "Strict external false-positive rate 93.0646% exceeds the 1% limit; strict-cohort ROC-AUC is 0.505832 and MCC is -0.060903.",
+    "required_action": "Retrain or redesign the model using development data, then evaluate a new candidate on a fresh untouched independent test set. Do not tune a threshold on this completed test cohort."
+  },
+  "limitations": [
+    "PhreshPhish is a curated research benchmark, not a probability sample of ordinary browsing.",
+    "URL-only model does not fetch, resolve, or visit submitted websites.",
+    "Internal holdout performance does not establish real-world performance.",
+    "This report does not enable production inference."
+  ]
+}
