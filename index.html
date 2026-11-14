@@ -43,6 +43,7 @@
     <nav aria-label="Main navigation">
       <a class="nav-active" href="#scanner">Scanner</a>
       <a href="#how-it-works">How it works</a>
+      <a href="#verification">Test evidence</a>
       <a href="#about">About</a>
     </nav>
     <a class="header-credit" href="https://github.com/abhinavcse-er" target="_blank" rel="noopener noreferrer">
@@ -71,7 +72,7 @@
       <div class="steps">
         <article><span class="step-no">01</span><div class="step-icon">↗</div><h3>Paste a URL</h3><p>Submit the link you received in a message, email, or website.</p></article>
         <article><span class="step-no">02</span><div class="step-icon">⌕</div><h3>Analyze signals</h3><p>We inspect URL structure, domain patterns, and common warning signs.</p></article>
-        <article><span class="step-no">03</span><div class="step-icon">✓</div><h3>Review the result</h3><p>Review the heuristic warning score and the machine-learning pattern classification separately.</p></article>
+        <article><span class="step-no">03</span><div class="step-icon">✓</div><h3>Review the result</h3><p>Read the heuristic warning score and its reasons. Experimental ML inference is paused pending external validation.</p></article>
       </div>
     </section>
     <section class="about-section" id="about">
@@ -81,7 +82,7 @@
         <div class="about-copy">
           <h3>What is PhishGuard?</h3>
           <p>PhishGuard is a free, educational URL phishing detection project created by <strong>Abhinav Kumar Mishra</strong>. It helps users inspect a website address for common phishing indicators before opening a link.</p>
-          <p>The scanner checks URL characteristics such as suspicious wording, unusual hostname patterns, IP-based addresses and other configured warning signals. It presents the heuristic warning score with reasons and a separate machine-learning pattern classification. Neither result is a real-world probability or a definitive safety verdict.</p>
+          <p>The scanner checks URL characteristics such as suspicious wording, brand impersonation, unusual hostname patterns, IP-based addresses and other configured warning signals. It currently relies on explainable URL heuristics; machine-learning inference is temporarily disabled after external testing exposed false positives. Neither a low score nor a suspicious score is a definitive safety verdict.</p>
           <h3>Why use a URL checker?</h3>
           <p>Phishing links can imitate trusted websites to trick people into sharing passwords, financial details or personal information. Checking an unfamiliar URL is one useful precaution—but it should never replace careful browsing habits.</p>
           <p class="about-author">Project creator: <a href="https://github.com/abhinavcse-er" target="_blank" rel="noopener noreferrer">Abhinav Kumar Mishra on GitHub</a></p>
@@ -92,6 +93,50 @@
           <div><span>03</span><strong>Educational purpose</strong><small>Learn to recognize suspicious link patterns.</small></div>
         </aside>
       </div>
+    </section>
+    <section class="verification-section" id="verification" aria-labelledby="verification-title">
+      <div class="section-kicker">PUBLIC TEST EVIDENCE</div>
+      <h2 id="verification-title">See what was tested.<br>Verify the results yourself.</h2>
+      <p class="verification-intro">This page publishes the latest controlled browser regression test, the exact source commit that was tested, and links to the original GitHub Actions run. You can inspect the evidence instead of relying only on a claim on this page.</p>
+      <div class="verification-panel">
+        <div class="verification-status">
+          <span class="verification-status-dot" aria-hidden="true"></span>
+          <div>
+            <strong>Latest browser regression run: PASSED</strong>
+            <small>14 November 2026 · GitHub Actions · Chromium / Playwright</small>
+          </div>
+        </div>
+        <div class="verification-metrics">
+          <div><strong>12/12</strong><span>Technical checks passed</span></div>
+          <div><strong>10/10</strong><span>URL regression cases passed</span></div>
+        </div>
+        <p class="verification-caveat"><strong>Scope:</strong> These are controlled regression tests, not a security certification or a measurement of real-world accuracy. The six benign controls and four suspicious test cases are a small fixed set, not a representative sample of the internet.</p>
+        <div class="verification-links">
+          <a href="https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43570865595" target="_blank" rel="noopener noreferrer">View original GitHub Actions run ↗</a>
+          <a href="./verification-report.json" target="_blank" rel="noopener noreferrer">Read public JSON test report ↗</a>
+          <a href="https://github.com/abhinavcse-er/Url-based-phishing-detection-system/commit/73ffc4c50cc0cc7624fe7b16089dad8839c27693" target="_blank" rel="noopener noreferrer">Inspect tested source commit ↗</a>
+          <a href="https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43570865595/artifacts/14103519979" target="_blank" rel="noopener noreferrer">Download raw workflow artifact ↗</a>
+        </div>
+      </div>
+      <div class="verification-table-wrap">
+        <table class="verification-table">
+          <thead><tr><th>Test URL</th><th>Expected result</th><th>Observed result</th><th>Score</th></tr></thead>
+          <tbody>
+            <tr><td>google.com</td><td>Low risk signals</td><td><span class="test-pass">PASS</span> Low risk signals</td><td>0/100</td></tr>
+            <tr><td>microsoft.com</td><td>Low risk signals</td><td><span class="test-pass">PASS</span> Low risk signals</td><td>0/100</td></tr>
+            <tr><td>github.com</td><td>Low risk signals</td><td><span class="test-pass">PASS</span> Low risk signals</td><td>0/100</td></tr>
+            <tr><td>wikipedia.org</td><td>Low risk signals</td><td><span class="test-pass">PASS</span> Low risk signals</td><td>0/100</td></tr>
+            <tr><td>amazon.com</td><td>Low risk signals</td><td><span class="test-pass">PASS</span> Low risk signals</td><td>0/100</td></tr>
+            <tr><td>example.org</td><td>Low risk signals</td><td><span class="test-pass">PASS</span> Low risk signals</td><td>0/100</td></tr>
+            <tr><td>paypal-login-security.example.com</td><td>Suspicious</td><td><span class="test-pass">PASS</span> Suspicious</td><td>55/100</td></tr>
+            <tr><td>secure-amazon.com/login</td><td>Suspicious</td><td><span class="test-pass">PASS</span> Suspicious</td><td>47/100</td></tr>
+            <tr><td>192.0.2.10/login</td><td>Suspicious</td><td><span class="test-pass">PASS</span> Suspicious</td><td>45/100</td></tr>
+            <tr><td>google.com.login.evil.xyz</td><td>Likely phishing</td><td><span class="test-pass">PASS</span> Likely phishing</td><td>69/100</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="verification-model-note"><strong>Model transparency:</strong> ML inference is currently disabled because a prior external probe misclassified well-known legitimate websites. It will remain disabled until it passes broader, independent validation. The current website uses explainable URL heuristics only.</p>
+      <p class="verification-source">Tested source commit: <code>73ffc4c50cc0cc7624fe7b16089dad8839c27693</code> · <a href="https://github.com/abhinavcse-er/Url-based-phishing-detection-system" target="_blank" rel="noopener noreferrer">Public source repository</a></p>
     </section>
     <section class="faq-section" aria-labelledby="faq-title">
       <div class="section-kicker">QUICK ANSWERS</div>
