@@ -385,6 +385,10 @@ def select_multisource_threshold(
         worst_source_fpr = max(usable, default=0.0)
         if worst_source_fpr > max_source_false_positive_rate:
             continue
+        # A threshold that predicts no phishing URLs is not a useful operating
+        # point even though its false-positive rate is zero.
+        if global_metrics["recall_phishing"] <= 0.0:
+            continue
         eligible.append((
             float(threshold),
             global_metrics,
