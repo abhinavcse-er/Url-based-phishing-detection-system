@@ -15,7 +15,7 @@ logger = logging.getLogger("phishguard")
 app = FastAPI(title="PhishGuard URL Analysis API", version="3.2.0")
 
 configured_origins = [item.strip() for item in os.getenv("ALLOWED_ORIGINS", "").split(",") if item.strip()]
-required_origins = ["https://detectphishing.netlify.app", "http://localhost:5500", "http://127.0.0.1:5500"]
+required_origins = ["https://detectphishing.netlify.app", "https://abhinavcse-er.github.io", "http://localhost:5500", "http://127.0.0.1:5500"]
 origins = list(dict.fromkeys(required_origins + configured_origins))
 app.add_middleware(
     CORSMiddleware,
