@@ -23,6 +23,7 @@ jobs:
     env:
       ML_TRAIN_MAX_SAMPLES: "50000"
       ML_MAX_VALIDATION_FPR: "0.01"
+      MODEL_DIR: "models/v4"
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -43,8 +44,8 @@ jobs:
           python -m compileall -q server.py train_model.py url_features.py evaluate_external.py
           python -m unittest discover -s tests -v
 
-      - name: Train v4 on the development source only
-        run: python train_model.py
+      - name: Train archived V4 on the development source only
+        run: python train_model_v4.py
 
       - name: Download pinned PhreshPhish test CSV and PhishFusion overlap corpus
         env:
@@ -68,6 +69,7 @@ jobs:
             --phishing-label phish \
             --benign-label benign \
             --source-training-csv /tmp/PhishFusion.csv \
+            --model models/v4/url_phishing_model.joblib \
             --minimum-per-class 500 \
             --max-fpr 0.01 \
             --min-recall 0.80 \
@@ -102,6 +104,6 @@ jobs:
           name: phishguard-v4-phreshphish-evaluation
           path: |
             phreshphish_external_validation_report.json
-            models/training_metrics.json
+            models/v4/training_metrics.json
           if-no-files-found: warn
           retention-days: 30
