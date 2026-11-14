@@ -230,20 +230,23 @@ def load_source_corpora(cache_dir: Path) -> tuple[pd.DataFrame, dict]:
 def sample_by_source_and_class(frame: pd.DataFrame) -> pd.DataFrame:
     """Give each source equal class-balanced representation in model development."""
     samples = []
-    for source_name in sorted(frame["source"].unique()):
-        source_frame = frame.loc[frame["source"] == source_name]
-        class_counts = source_frame["target"].value_counts()
-        if 0 not in class_counts or 1 not in class_counts:
+    source_names = sorted(frame["source"].unique())
+    per_source_class_caps = []
+    for source_name in source_names:
+        counts = frame.loc[frame["source"] == source_name, "target"].value_counts()
+        if 0 not in counts or 1 not in counts:
             raise RuntimeError(f"{source_name} does not contain both classes.")
-        per_class = min(
-            MAX_PER_SOURCE_CLASS,
-            int(class_counts[0]),
-            int(class_counts[1]),
-        )
+        per_source_class_caps.append(min(int(counts[0]), int(counts[1])))
+    # Use the same sample count for every source/class pair so one source cannot
+    # dominate simply because its published corpus is larger.
+    shared_per_class = min(MAX_PER_SOURCE_CLASS, *per_source_class_caps)
+
+    for source_name in source_names:
+        source_frame = frame.loc[frame["source"] == source_name]
         for label in (0, 1):
             samples.append(
                 source_frame.loc[source_frame["target"] == label].sample(
-                    n=per_class,
+                    n=shared_per_class,
                     random_state=RANDOM_STATE + label,
                 )
             )
