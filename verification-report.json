@@ -1,0 +1,156 @@
+{
+  "report_title": "PhishGuard Website Regression Test Report",
+  "report_type": "controlled_browser_regression_test",
+  "status": "passed",
+  "tested_at_utc": "2026-11-14T07:23:48Z",
+  "published_site": "https://abhinavcse-er.github.io/Url-based-phishing-detection-system/",
+  "api": "https://phishing-backend-2kib.onrender.com",
+  "tested_source_commit": "73ffc4c50cc0cc7624fe7b16089dad8839c27693",
+  "source_commit_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/commit/73ffc4c50cc0cc7624fe7b16089dad8839c27693",
+  "github_actions_run_id": 43570865595,
+  "github_actions_run_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43570865595",
+  "downloadable_report_artifact_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43570865595/artifacts/14103519979",
+  "runner": "GitHub Actions hosted Ubuntu runner with Chromium and Playwright",
+  "summary": {
+    "technical_checks_passed": 12,
+    "technical_checks_total": 12,
+    "url_regression_cases_passed": 10,
+    "url_regression_cases_total": 10,
+    "overall_regression_result": "PASS"
+  },
+  "technical_checks": [
+    {
+      "name": "Published site returns HTTP 200",
+      "result": "PASS"
+    },
+    {
+      "name": "Page title and scanner form load",
+      "result": "PASS"
+    },
+    {
+      "name": "URL input and Analyze button are present",
+      "result": "PASS"
+    },
+    {
+      "name": "Frontend API configuration is loaded",
+      "result": "PASS"
+    },
+    {
+      "name": "Render backend health endpoint returns HTTP 200",
+      "result": "PASS"
+    },
+    {
+      "name": "Model inference is gated pending external validation",
+      "result": "PASS"
+    },
+    {
+      "name": "Empty input validation works",
+      "result": "PASS"
+    },
+    {
+      "name": "Scan requests work through the published GitHub Pages origin",
+      "result": "PASS"
+    },
+    {
+      "name": "No legacy phishing-probability field is returned",
+      "result": "PASS"
+    },
+    {
+      "name": "No uncaught browser page errors",
+      "result": "PASS"
+    },
+    {
+      "name": "Mobile layout has no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "Result UI shows the disabled-ML explanation",
+      "result": "PASS"
+    }
+  ],
+  "url_regression_results": [
+    {
+      "url": "https://www.google.com/",
+      "expected": "probably_safe",
+      "observed": "probably_safe",
+      "heuristic_score": 0,
+      "result": "PASS"
+    },
+    {
+      "url": "https://www.microsoft.com/",
+      "expected": "probably_safe",
+      "observed": "probably_safe",
+      "heuristic_score": 0,
+      "result": "PASS"
+    },
+    {
+      "url": "https://github.com/",
+      "expected": "probably_safe",
+      "observed": "probably_safe",
+      "heuristic_score": 0,
+      "result": "PASS"
+    },
+    {
+      "url": "https://www.wikipedia.org/",
+      "expected": "probably_safe",
+      "observed": "probably_safe",
+      "heuristic_score": 0,
+      "result": "PASS"
+    },
+    {
+      "url": "https://www.amazon.com/",
+      "expected": "probably_safe",
+      "observed": "probably_safe",
+      "heuristic_score": 0,
+      "result": "PASS"
+    },
+    {
+      "url": "https://example.org/",
+      "expected": "probably_safe",
+      "observed": "probably_safe",
+      "heuristic_score": 0,
+      "result": "PASS"
+    },
+    {
+      "url": "http://paypal-login-security.example.com/",
+      "expected": "suspicious",
+      "observed": "suspicious",
+      "heuristic_score": 55,
+      "result": "PASS"
+    },
+    {
+      "url": "https://secure-amazon.com/login",
+      "expected": "suspicious",
+      "observed": "suspicious",
+      "heuristic_score": 47,
+      "result": "PASS"
+    },
+    {
+      "url": "http://192.0.2.10/login",
+      "expected": "suspicious",
+      "observed": "suspicious",
+      "heuristic_score": 45,
+      "result": "PASS"
+    },
+    {
+      "url": "https://google.com.login.evil.xyz/",
+      "expected": "likely_phishing",
+      "observed": "likely_phishing",
+      "heuristic_score": 69,
+      "result": "PASS"
+    }
+  ],
+  "model_status": {
+    "inference": "disabled_pending_external_validation",
+    "reason": "The previous external probe produced false positives on well-known legitimate domains. ML inference is disabled until it passes independent external validation."
+  },
+  "scope_and_limitations": [
+    "This report records a controlled set of browser and URL heuristic regression tests only.",
+    "The benign control URLs are a small fixed control set, not a representative sample of all legitimate websites.",
+    "The suspicious URLs are synthetic test cases and are not live malicious destinations.",
+    "A passing regression test does not establish real-world accuracy, zero false positives, zero false negatives, or safety of any website.",
+    "PhishGuard analyzes URL text and does not visit the submitted website.",
+    "A low heuristic score is not a guarantee that a website is safe."
+  ],
+  "report_integrity_note": "The run and source commit links point to the public GitHub repository records for independent inspection. This JSON is a static copy of the results from the recorded run; it is not a cryptographic signature."
+}
