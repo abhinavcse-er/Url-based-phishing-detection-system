@@ -82,7 +82,7 @@
         <div class="about-copy">
           <h3>What is PhishGuard?</h3>
           <p>PhishGuard is a free, educational URL phishing detection project created by <strong>Abhinav Kumar Mishra</strong>. It helps users inspect a website address for common phishing indicators before opening a link.</p>
-          <p>The scanner checks URL characteristics such as suspicious wording, brand impersonation, unusual hostname patterns, IP-based addresses and other configured warning signals. The v4 ML candidate compares character patterns, word patterns and structural URL features, but it remains disabled while independent validation is pending. Live scans continue to use explainable URL heuristics. Neither a low score nor a suspicious score is a definitive safety verdict.</p>
+          <p>The scanner checks URL characteristics such as suspicious wording, brand impersonation, unusual hostname patterns, IP-based addresses and other configured warning signals. The v4 ML candidate was independently evaluated on PhreshPhish and failed its false-positive gate (93.06% false-positive rate on the strict external cohort). ML inference remains disabled; live scans use explainable URL heuristics only. Neither a low score nor a suspicious score is a definitive safety verdict.</p>
           <h3>Why use a URL checker?</h3>
           <p>Phishing links can imitate trusted websites to trick people into sharing passwords, financial details or personal information. Checking an unfamiliar URL is one useful precaution—but it should never replace careful browsing habits.</p>
           <p class="about-author">Project creator: <a href="https://github.com/abhinavcse-er" target="_blank" rel="noopener noreferrer">Abhinav Kumar Mishra on GitHub</a></p>
@@ -113,7 +113,9 @@
         <p class="verification-caveat"><strong>Scope:</strong> These are controlled regression tests, not a security certification or a measurement of real-world accuracy. The six benign controls and four suspicious test cases are a small fixed set, not a representative sample of the internet.</p>
         <div class="verification-links">
           <a href="https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/workflows/website-e2e-test.yml" target="_blank" rel="noopener noreferrer">Browse public GitHub Actions test runs ↗</a>
-          <a href="./verification-report.json" target="_blank" rel="noopener noreferrer">Read public JSON test report ↗</a>
+          <a href="./verification-report.json" target="_blank" rel="noopener noreferrer">Read public JSON browser-test report ↗</a>
+          <a href="./phreshphish-external-validation-report.json" target="_blank" rel="noopener noreferrer">Read independent ML evaluation report ↗</a>
+          <a href="https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43577785231" target="_blank" rel="noopener noreferrer">Inspect original PhreshPhish evaluation run ↗</a>
           <a href="https://github.com/abhinavcse-er/Url-based-phishing-detection-system/tree/main" target="_blank" rel="noopener noreferrer">Inspect current source on GitHub ↗</a>
         </div>
       </div>
@@ -134,8 +136,8 @@
           </tbody>
         </table>
       </div>
-      <p class="verification-model-note"><strong>Model transparency:</strong> The v4 training pipeline now compares character-text, hybrid text-plus-URL-feature, and structured-feature models. A separate validation set controls the false-positive threshold. This is an experimental candidate, not a production accuracy claim; live ML inference remains disabled until a separately sourced external evaluation is reviewed. The current website uses explainable URL heuristics only.</p>
-      <p class="verification-source">Tested source commit: <code>feb65598fd904fdb891ab9c611bcc29b19fc4fcd</code> · <a href="https://github.com/abhinavcse-er/Url-based-phishing-detection-system" target="_blank" rel="noopener noreferrer">Public source repository</a></p>
+      <p class="verification-model-note"><strong>Independent ML evaluation: FAILED — DO NOT ENABLE.</strong> The v4 hybrid candidate was tested against 108,928 strict PhreshPhish URLs after source URL and registered-domain overlaps were removed. It produced a 93.06% false-positive rate (release limit: 1%), 89.64% phishing recall, and 0.506 ROC-AUC. The near-random ranking and extremely high false-positive rate fail the release gate. ML inference remains off. <a href="./phreshphish-external-validation-report.json" target="_blank" rel="noopener noreferrer">Read the full external report ↗</a> · <a href="https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43577785231" target="_blank" rel="noopener noreferrer">Verify the original workflow ↗</a></p>
+      <p class="verification-source">Browser-test source commit: <code>00e656dd1db9df6d66e4c76be3f20742b69020dc</code> · <a href="https://github.com/abhinavcse-er/Url-based-phishing-detection-system" target="_blank" rel="noopener noreferrer">Public source repository</a></p>
     </section>
     <section class="faq-section" aria-labelledby="faq-title">
       <div class="section-kicker">QUICK ANSWERS</div>
