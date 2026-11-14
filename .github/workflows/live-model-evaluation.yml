@@ -1,0 +1,39 @@
+name: Live URL model evaluation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/live_model_evaluation.py"
+      - ".github/workflows/live-model-evaluation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate-live-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Probe deployed model using external URL sources
+        env:
+          PHISHING_API_BASE: https://phishing-backend-2kib.onrender.com
+          LIVE_EVAL_SAMPLE_SIZE: "100"
+        run: python scripts/live_model_evaluation.py
+
+      - name: Upload evaluation report
+        if: always() && hashFiles('live_model_evaluation.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-model-evaluation
+          path: live_model_evaluation.json
+          if-no-files-found: ignore
