@@ -1,0 +1,106 @@
+name: V4 independent PhreshPhish evaluation
+
+on:
+  push:
+    branches:
+      - ml-model-v4-hybrid
+    paths:
+      - "evaluate_external.py"
+      - "train_model.py"
+      - "url_features.py"
+      - "tests/**"
+      - ".github/workflows/v4-external-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  train-and-evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ML_TRAIN_MAX_SAMPLES: "50000"
+      ML_MAX_VALIDATION_FPR: "0.01"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Compile source and run regression tests
+        run: |
+          python -m compileall -q server.py train_model.py url_features.py evaluate_external.py
+          python -m unittest discover -s tests -v
+
+      - name: Train v4 on the development source only
+        run: python train_model.py
+
+      - name: Download pinned PhreshPhish test CSV and PhishFusion overlap corpus
+        env:
+          PHRESH_URL: https://raw.githubusercontent.com/aI-area/PhishDetecting/aedc3dd65fd92a187f5c174cd8a93a89588a98f6/dataset/PhreshPhish/test_url_metadata.csv.gz
+          PHISHFUSION_URL: https://raw.githubusercontent.com/aI-area/PhishDetecting/aedc3dd65fd92a187f5c174cd8a93a89588a98f6/dataset/PhishFusion.csv
+        run: |
+          curl --fail --location --retry 3 --retry-delay 2 "$PHRESH_URL" --output /tmp/test_url_metadata.csv.gz
+          curl --fail --location --retry 3 --retry-delay 2 "$PHISHFUSION_URL" --output /tmp/PhishFusion.csv
+          echo "ecc1efc3a8207f91b3953546011da5f35bc17907e7ae96ada6beb6635efa6dd7  /tmp/test_url_metadata.csv.gz" | sha256sum --check --strict
+          ACTUAL_PHISHFUSION_BLOB="$(git hash-object /tmp/PhishFusion.csv)"
+          EXPECTED_PHISHFUSION_BLOB="b698ebad3a81bf81c3868f60b1d1fefb4f1e2361"
+          test "$ACTUAL_PHISHFUSION_BLOB" = "$EXPECTED_PHISHFUSION_BLOB"
+          echo "Pinned external and source-overlap corpora verified."
+
+      - name: Evaluate on URL-disjoint and source-domain-disjoint cohorts
+        run: |
+          python evaluate_external.py \
+            --dataset /tmp/test_url_metadata.csv.gz \
+            --url-column url \
+            --label-column source_label \
+            --phishing-label phish \
+            --benign-label benign \
+            --source-training-csv /tmp/PhishFusion.csv \
+            --minimum-per-class 500 \
+            --max-fpr 0.01 \
+            --min-recall 0.80 \
+            --output phreshphish_external_validation_report.json
+
+      - name: Print cohort sizes and release-gate outcome
+        if: always() && hashFiles('phreshphish_external_validation_report.json') != ''
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("phreshphish_external_validation_report.json").read_text())
+          print(json.dumps({
+              "dataset_sha256": report.get("dataset_sha256"),
+              "cleaning": report.get("cleaning"),
+              "phishfusion_url_overlap_excluded": report.get("phishfusion_url_overlap_excluded"),
+              "url_disjoint_external_evaluation": report.get("url_disjoint_external_evaluation"),
+              "phishfusion_source_domain_overlap_excluded": report.get("phishfusion_source_domain_overlap_excluded"),
+              "source_domain_disjoint_external_evaluation": report.get("source_domain_disjoint_external_evaluation"),
+              "development_site_overlap_excluded_after_source_domain_filter": report.get("development_site_overlap_excluded_after_source_domain_filter"),
+              "strict_external_evaluation": report.get("strict_external_evaluation"),
+              "release_gate_checks": report.get("release_gate_checks"),
+              "release_gate_candidate_passed": report.get("release_gate_candidate_passed"),
+              "automatic_production_enablement": report.get("automatic_production_enablement"),
+          }, indent=2))
+          PY
+
+      - name: Upload external evaluation report and training metrics
+        if: always() && hashFiles('phreshphish_external_validation_report.json', 'models/training_metrics.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: phishguard-v4-phreshphish-evaluation
+          path: |
+            phreshphish_external_validation_report.json
+            models/training_metrics.json
+          if-no-files-found: warn
+          retention-days: 30
