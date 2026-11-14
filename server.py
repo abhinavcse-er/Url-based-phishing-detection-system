@@ -49,7 +49,7 @@ try:
         if ML_MODEL is None:
             raise ValueError("Model artifact does not contain a pipeline.")
         if (
-            ML_METADATA.get("model_version") != 2
+            ML_METADATA.get("model_version") != 3
             or not ML_METADATA.get("test_metrics")
             or not ML_METADATA.get("calibration_metrics")
         ):
@@ -281,6 +281,10 @@ def health():
             "available" if evaluation_available
             else "retrain_required" if ML_MODEL is not None
             else "unavailable"
+        ),
+        "ml_release_status": (
+            "disabled_pending_external_validation" if ML_MODEL is not None
+            else "model_unavailable"
         ),
         "ml_metrics": {
             "accuracy": test_metrics.get("accuracy", ML_METADATA.get("accuracy")),
