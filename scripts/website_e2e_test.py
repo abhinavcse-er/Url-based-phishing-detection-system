@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Browser-level end-to-end test for the published PhishGuard site."""
+"""Browser-level end-to-end test for the published PhishGuard site and public evidence panel."""
 import json
 import os
 import sys
