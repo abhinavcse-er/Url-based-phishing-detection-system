@@ -31,11 +31,8 @@
     const summary = {safe:"No major warning signs were found by these checks. This does not guarantee the site is safe.",suspicious:"Some URL characteristics look unusual. Verify the domain independently before interacting.",phishing:"Several warning signs were detected. Avoid entering credentials or payment information."};
     const ml = data && data.ml_result ? data.ml_result : null;
     const mlHTML = data && data.ml_status === "used" && ml
-      ? '<div class="ml-result"><strong>ML model assessment</strong><span>' + escapeHTML(ml.ml_label_text || "Unknown") + ' · Class ' + escapeHTML(ml.ml_label) + '</span>' +
-        (ml.ml_phishing_probability !== null && ml.ml_phishing_probability !== undefined
-          ? '<small>Estimated phishing probability: ' + Math.round(Number(ml.ml_phishing_probability) * 100) + '%</small>'
-          : '<small>Probability estimate unavailable</small>') +
-        '<small class="ml-note">Model estimate, not a guarantee of website safety.</small></div>'
+      ? '<div class="ml-result"><strong>ML model assessment</strong><span>Model prediction: ' + escapeHTML(ml.ml_label_text || "Pattern classification unavailable") + ' · Class ' + escapeHTML(ml.ml_label ?? "unknown") + '</span>' +
+        '<small class="ml-note">This is a URL-pattern classification, not a real-world phishing probability or a guarantee of safety.</small></div>'
       : '<div class="ml-result"><strong>ML model assessment</strong><small>Unavailable for this scan.</small></div>';
     const reasons = Array.isArray(verdict.reasons) ? verdict.reasons : [];
     const reasonHTML = reasons.length ? reasons.map(item => '<li>' + escapeHTML(item.reason || "Risk indicator") + ' (+' + escapeHTML(item.points ?? 0) + ')</li>').join("") : "<li>No configured warning indicators were triggered.</li>";
