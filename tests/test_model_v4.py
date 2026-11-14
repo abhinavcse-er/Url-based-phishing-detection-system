@@ -180,13 +180,15 @@ class ExternalDatasetCleaningTests(unittest.TestCase):
         from pathlib import Path
         import pandas as pd
 
-        url = "https://valid-example.org/"
-        digest = hashlib.sha256(url.encode("utf-8")).hexdigest()
+        # The source file includes a non-breaking trailing space on one URL.
+        # Hash integrity must use the untouched value; URL cleaning trims it later.
+        raw_url = "https://valid-example.org/\u00a0"
+        digest = hashlib.sha256(raw_url.encode("utf-8")).hexdigest()
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "external.csv"
             pd.DataFrame([
                 {
-                    "url": url,
+                    "url": raw_url,
                     "label": "benign",
                     "source_id": digest,
                     "url_sha256": digest,
@@ -211,6 +213,7 @@ class ExternalDatasetCleaningTests(unittest.TestCase):
             )
 
         self.assertEqual(len(cleaned), 2)
+        self.assertEqual(cleaned.iloc[0]["url"], "https://valid-example.org/")
         self.assertEqual(diagnostics["url_hash_integrity"]["url_sha256_rows"], 2)
         self.assertEqual(diagnostics["url_hash_integrity"]["source_id_rows"], 2)
 
