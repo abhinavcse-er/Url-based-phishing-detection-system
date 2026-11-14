@@ -33,6 +33,7 @@ from train_model_v4 import (
     classification_metrics,
     hash_site,
     positive_class_probabilities,
+    select_threshold,
 )
 
 
@@ -582,6 +583,7 @@ def main() -> None:
     metadata = {
         "model_version": MODEL_VERSION,
         "feature_schema_version": FEATURE_SCHEMA_VERSION,
+        "source_commit": os.getenv("GITHUB_SHA"),
         "model_family": "multi-source selection among character, hybrid, and structured URL-only candidates",
         "selected_model": best_name,
         "dataset_source": "PhishFusion + Ebbu2017 + PhishStorm",
