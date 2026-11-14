@@ -125,6 +125,28 @@ python evaluate_external.py \
 
 For other datasets, set the column names and positive/negative label values explicitly. The evaluator never visits URLs. It reports results for the full external sample and for registrable sites that do not overlap any development partition. It also writes a dataset SHA-256 digest. It does not automatically edit the model artifact or enable inference.
 
+## Latest independent external evaluation — 14 November 2026
+
+The V4 candidate was trained on a balanced 50,000-URL sample from the documented development source. It selected the hybrid text-plus-URL-feature model. The untouched development-source holdout scored 99.6% accuracy, but this is not independent validation.
+
+The pinned PhreshPhish external test completed with a **failed release gate**. On the strict cohort (PhishFusion URL and registered-domain overlaps removed, then all V4 development domains excluded), 108,928 URLs remained:
+
+| Metric | Result |
+|---|---:|
+| Accuracy | 40.76% |
+| False-positive rate | **93.06%** |
+| False-negative rate | 10.36% |
+| Phishing recall | 89.64% |
+| ROC-AUC | 0.506 |
+| MCC | -0.061 |
+
+The permitted false-positive rate was 1%. The observed rate is far above that limit, and the ROC-AUC is close to random ranking. The candidate therefore **must not be enabled**. Its strong internal holdout score did not transfer to this independent source.
+
+- [Full machine-readable external evaluation report](./phreshphish-external-validation-report.json)
+- [Original reproducible GitHub Actions run](https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43577785231)
+
+Do not tune a decision threshold on this completed PhreshPhish test cohort and then report the same cohort as independent validation. A revised candidate needs development on training data and a fresh, untouched external evaluation. Live scans continue to use explainable URL heuristics only.
+
 ### Production inference release gate
 
 Live ML inference requires all three approval conditions:
