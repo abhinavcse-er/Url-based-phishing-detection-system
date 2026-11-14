@@ -81,13 +81,16 @@ The documented released test split contains 91,260 benign and 76,800 phishing UR
 
 The source project documents this as separate from its PhishTank and PhishFusion cohorts and says its PhreshPhish export excludes exact/normalized PhishFusion URL overlap; its stricter subset also excludes PhishFusion registered-domain overlap. The v4 evaluator additionally checks overlap against the domains actually used by the PhishGuard v4 development sample. Do not infer independence from a filename alone: retain the generated overlap report and inspect the result counts.
 
-Download the raw file, then run:
+Download the two pinned source files, then verify their checksums:
 
 ~~~bash
-curl -L "https://raw.githubusercontent.com/aI-area/PhishDetecting/main/dataset/PhreshPhish/test_url_metadata.csv.gz" -o phreshphish_test_url_metadata.csv.gz
+curl -L "https://raw.githubusercontent.com/aI-area/PhishDetecting/aedc3dd65fd92a187f5c174cd8a93a89588a98f6/dataset/PhreshPhish/test_url_metadata.csv.gz" -o phreshphish_test_url_metadata.csv.gz
+curl -L "https://raw.githubusercontent.com/aI-area/PhishDetecting/aedc3dd65fd92a187f5c174cd8a93a89588a98f6/dataset/PhishFusion.csv" -o PhishFusion.csv
+echo "ecc1efc3a8207f91b3953546011da5f35bc17907e7ae96ada6beb6635efa6dd7  phreshphish_test_url_metadata.csv.gz" | sha256sum --check --strict
+test "$(git hash-object PhishFusion.csv)" = "b698ebad3a81bf81c3868f60b1d1fefb4f1e2361"
 ~~~
 
-Verify the compressed file using the SHA-256 value published in the upstream [metadata.json](https://github.com/aI-area/PhishDetecting/blob/main/dataset/PhreshPhish/metadata.json), then run:
+Run the external evaluation:
 
 ~~~bash
 python evaluate_external.py \
@@ -96,13 +99,14 @@ python evaluate_external.py \
   --label-column source_label \
   --phishing-label phish \
   --benign-label benign \
+  --source-training-csv PhishFusion.csv \
   --minimum-per-class 500 \
   --max-fpr 0.01 \
   --min-recall 0.80 \
   --output phreshphish_external_validation_report.json
 ~~~
 
-This evaluation command never opens the submitted URLs. It checks and reports the subset of sites not present in the v4 development-site manifest. Review the dataset paper, license, dates, label provenance, overlap counts, and false-positive examples before treating the result as a release decision.
+The evaluator never opens submitted URLs. It verifies the uploaded row hashes when present, removes invalid URLs, conflicting normalized labels, later normalized duplicates, and source-corpus exact/normalized URL overlaps. It reports the URL-disjoint cohort, then a stricter cohort without PhishFusion registered-domain overlap (using a Public Suffix List snapshot with private suffixes), and finally excludes any PhishGuard v4 development-site overlap. The original URL string is still passed to the model. Review cohort counts, source provenance, collection dates, labels, and false-positive examples before treating the report as a release decision.
 
 Example for a CSV with URL and Label columns where 0=phishing and 1=legitimate:
 
