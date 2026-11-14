@@ -35,7 +35,20 @@ try:
         ML_METADATA = saved_model.get("metadata", {})
         if ML_MODEL is None:
             raise ValueError("Model artifact does not contain a pipeline.")
-        logger.info("ML model loaded from %s", MODEL_PATH)
+        if (
+            ML_METADATA.get("model_version") != 2
+            or not ML_METADATA.get("test_metrics")
+            or not ML_METADATA.get("calibration_metrics")
+        ):
+            raise ValueError(
+                "Model artifact is missing the current calibration and held-out evaluation. "
+                "Rebuild it by running train_model.py."
+            )
+        logger.info(
+            "Calibrated ML model loaded from %s (version %s)",
+            MODEL_PATH,
+            ML_METADATA.get("model_version"),
+        )
     else:
         logger.warning("ML model artifact not found at %s; ML assessment disabled.", MODEL_PATH)
 except Exception:
