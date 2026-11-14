@@ -117,12 +117,15 @@ class V5ThresholdTests(unittest.TestCase):
         sources = []
         for source in ("PhishFusion", "Ebbu2017", "PhishStorm"):
             labels.extend([0] * 100 + [1] * 100)
-            scores.extend(
-                np.concatenate([
-                    np.linspace(0.40, 0.90, 100),
-                    np.linspace(0.45, 0.95, 100),
-                ]).tolist()
-            )
+            if source == "PhishFusion":
+                benign_scores = np.linspace(0.05, 0.20, 100)
+                phishing_scores = np.linspace(0.30, 0.60, 100)
+            else:
+                # Every threshold that catches these phishing-like scores also
+                # flags nearly all legitimate examples from this source.
+                benign_scores = np.full(100, 0.95)
+                phishing_scores = np.full(100, 0.90)
+            scores.extend(np.concatenate([benign_scores, phishing_scores]).tolist())
             sources.extend([source] * 200)
 
         threshold, selection = select_multisource_threshold(
