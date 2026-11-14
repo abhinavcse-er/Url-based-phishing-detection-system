@@ -285,18 +285,32 @@ def split_by_hostname(urls, targets, groups, n_splits: int, random_state: int):
     )
 
 
-def make_grouped_splits(urls, targets, groups) -> dict[str, np.ndarray]:
-    """Create nested train/calibration/validation/test splits with no site overlap."""
+def make_grouped_splits(
+    urls,
+    targets,
+    groups,
+    sources=None,
+) -> dict[str, np.ndarray]:
+    """Create nested group-disjoint splits stratified by source and class."""
+    targets = pd.Series(targets).reset_index(drop=True)
+    groups = pd.Series(groups).reset_index(drop=True)
+    if sources is None:
+        strata = targets.copy()
+    else:
+        sources = pd.Series(sources).reset_index(drop=True)
+        source_codes = pd.Categorical(sources).codes
+        strata = pd.Series(source_codes * 2 + targets.to_numpy(dtype=int))
+
     train_validation_idx, test_idx = split_by_hostname(
-        urls, targets, groups, n_splits=5, random_state=RANDOM_STATE
+        urls, strata, groups, n_splits=5, random_state=RANDOM_STATE
     )
     remaining_urls = urls.iloc[train_validation_idx].reset_index(drop=True)
-    remaining_targets = targets.iloc[train_validation_idx].reset_index(drop=True)
+    remaining_strata = strata.iloc[train_validation_idx].reset_index(drop=True)
     remaining_groups = groups.iloc[train_validation_idx].reset_index(drop=True)
 
     train_calibration_idx_local, validation_idx_local = split_by_hostname(
         remaining_urls,
-        remaining_targets,
+        remaining_strata,
         remaining_groups,
         n_splits=5,
         random_state=RANDOM_STATE + 1,
@@ -305,11 +319,11 @@ def make_grouped_splits(urls, targets, groups) -> dict[str, np.ndarray]:
     validation_idx = train_validation_idx[validation_idx_local]
 
     train_calibration_urls = urls.iloc[train_calibration_idx].reset_index(drop=True)
-    train_calibration_targets = targets.iloc[train_calibration_idx].reset_index(drop=True)
+    train_calibration_strata = strata.iloc[train_calibration_idx].reset_index(drop=True)
     train_calibration_groups = groups.iloc[train_calibration_idx].reset_index(drop=True)
     training_local, calibration_local = split_by_hostname(
         train_calibration_urls,
-        train_calibration_targets,
+        train_calibration_strata,
         train_calibration_groups,
         n_splits=4,
         random_state=RANDOM_STATE + 2,
@@ -457,7 +471,7 @@ def main() -> None:
     sources = sampled["source"].reset_index(drop=True)
     groups = urls.map(hostname_group)
 
-    partitions = make_grouped_splits(urls, targets, groups)
+    partitions = make_grouped_splits(urls, targets, groups, sources)
     group_sets = {
         name: set(groups.iloc[indexes].astype(str))
         for name, indexes in partitions.items()
