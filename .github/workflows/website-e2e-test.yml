@@ -10,7 +10,6 @@ on:
       - "phreshphish-external-validation-report.json"
       - ".github/workflows/website-e2e-test.yml"
       - "scripts/smoke_test_heuristics.py"
-      - ".github/workflows/website-e2e-test.yml"
       - "server.py"
       - "train_model.py"
       - "requirements.txt"
