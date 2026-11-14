@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from server import ml_inference_gate
-from evaluate_external import load_external_dataset
+from evaluate_external import load_external_dataset, load_phishfusion_source, normalized_http_url
 from train_model import (
     build_model_candidates,
     hostname_group,
@@ -142,9 +142,77 @@ class ExternalDatasetCleaningTests(unittest.TestCase):
         self.assertEqual(diagnostics["invalid_or_non_http_url_rows_removed"], 1)
         self.assertEqual(diagnostics["normalized_label_conflict_rows_removed"], 2)
         self.assertEqual(diagnostics["normalized_duplicate_rows_removed"], 1)
-        self.assertEqual(diagnostics["class_counts_after_cleaning"], {
+        self.assertEqual(diagnostics["class_counts_before_source_overlap"], {
             "benign": 1, "phishing": 2
         })
+
+
+    def test_phishfusion_overlap_normalization_ignores_scheme_and_fragment(self):
+        import tempfile
+        from pathlib import Path
+        import pandas as pd
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "phishfusion.csv"
+            pd.DataFrame({
+                "url": [
+                    "https://Example.com/login?next=home#source-fragment",
+                    "https://sub.example.org/path",
+                ],
+                "phishing": [1, 0],
+            }).to_csv(path, index=False)
+
+            overlap_urls, source_domains, diagnostics = load_phishfusion_source(path)
+
+        parsed = normalized_http_url(
+            "http://example.com/login?next=home#different-fragment"
+        )
+        self.assertIsNotNone(parsed)
+        self.assertIn(parsed[0], overlap_urls)
+        self.assertIn("example.com", source_domains)
+        self.assertEqual(diagnostics["rows_read_by_encoding"], {
+            "utf-8": 2, "latin-1": 2
+        })
+
+    def test_source_hash_columns_are_checked_against_original_url(self):
+        import tempfile
+        import hashlib
+        from pathlib import Path
+        import pandas as pd
+
+        url = "https://valid-example.org/"
+        digest = hashlib.sha256(url.encode("utf-8")).hexdigest()
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "external.csv"
+            pd.DataFrame([
+                {
+                    "url": url,
+                    "label": "benign",
+                    "source_id": digest,
+                    "url_sha256": digest,
+                },
+                {
+                    "url": "https://phishing-example.xyz/login",
+                    "label": "phish",
+                    "source_id": hashlib.sha256(
+                        b"https://phishing-example.xyz/login"
+                    ).hexdigest(),
+                    "url_sha256": hashlib.sha256(
+                        b"https://phishing-example.xyz/login"
+                    ).hexdigest(),
+                },
+            ]).to_csv(path, index=False)
+            cleaned, diagnostics = load_external_dataset(
+                path,
+                url_column="url",
+                label_column="label",
+                phishing_label="phish",
+                benign_label="benign",
+            )
+
+        self.assertEqual(len(cleaned), 2)
+        self.assertEqual(diagnostics["url_hash_integrity"]["url_sha256_rows"], 2)
+        self.assertEqual(diagnostics["url_hash_integrity"]["source_id_rows"], 2)
 
 
 class DecisionGateTests(unittest.TestCase):
