@@ -231,11 +231,14 @@ class DecisionGateTests(unittest.TestCase):
         self.assertLessEqual(metrics["false_positive_rate"], 0.01)
         self.assertGreater(metrics["recall_phishing"], 0.0)
 
-    def test_model_inference_requires_both_operator_switches(self):
-        self.assertFalse(ml_inference_gate(False, False))
-        self.assertFalse(ml_inference_gate(True, False))
-        self.assertFalse(ml_inference_gate(False, True))
-        self.assertTrue(ml_inference_gate(True, True))
+    def test_model_inference_requires_both_switches_and_approved_artifact(self):
+        self.assertFalse(ml_inference_gate(False, False, "approved", True))
+        self.assertFalse(ml_inference_gate(True, False, "approved", True))
+        self.assertFalse(
+            ml_inference_gate(True, True, "pending_external_validation", False)
+        )
+        self.assertFalse(ml_inference_gate(True, True, "approved", False))
+        self.assertTrue(ml_inference_gate(True, True, "approved", True))
 
 
 if __name__ == "__main__":
