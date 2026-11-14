@@ -155,6 +155,24 @@ def main():
     phishing_predictions = classify_urls(phishing_urls)
     popular_predictions = classify_urls(popular_urls)
 
+    # Small, explicit control set helps distinguish a source-label issue from
+    # poor generalization to short homepage URLs. These are not a benchmark.
+    control_urls = [
+        "https://www.google.com/",
+        "https://www.microsoft.com/",
+        "https://github.com/",
+        "https://www.wikipedia.org/",
+        "https://www.amazon.com/",
+        "https://example.org/",
+    ]
+    control_predictions = classify_urls(control_urls)
+    control_results = [
+        {"host": host_key(url), "ml_label": label,
+         "ml_label_text": "Phishing-like URL pattern" if label == 1
+         else "Legitimate-like URL pattern"}
+        for url, label in zip(control_urls, control_predictions)
+    ]
+
     detected = sum(label == 1 for label in phishing_predictions)
     missed = len(phishing_predictions) - detected
     popular_flagged = sum(label == 1 for label in popular_predictions)
@@ -164,6 +182,10 @@ def main():
         "api_base": API_BASE,
         "model_evaluation_status": health.get("ml_evaluation_status"),
         "model_metrics_from_training_benchmark": health.get("ml_metrics"),
+        "sanity_controls": {
+            "results": control_results,
+            "note": "Small manual control list for diagnosis only; not sufficient to estimate accuracy.",
+        },
         "sources": {
             "phishing": {
                 "name": "OpenPhish community feed",
@@ -208,6 +230,7 @@ def main():
         "popular_domain_sample": len(popular_urls),
         "popular_domains_flagged_as_phishing": popular_flagged,
         "popular_domain_model_flag_rate": report["sources"]["popular_domains"]["model_flag_rate"],
+        "sanity_controls": control_results,
         "benchmark_caution": report["interpretation"],
     }, indent=2))
 
