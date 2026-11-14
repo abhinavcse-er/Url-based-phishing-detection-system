@@ -116,7 +116,6 @@ def main():
             strict_metrics = (
                 external_report.get("external_cohorts", {})
                 .get("strict_development_domain_disjoint", {})
-                .get("metrics", {})
             )
             gate_checks = external_report.get("release_gate", {})
             release_decision = external_report.get("release_decision", {})
