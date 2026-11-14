@@ -105,38 +105,24 @@ def load_external_dataset(
         raise ValueError(f"External CSV is missing required columns: {sorted(missing)}")
 
     frame = frame.copy()
+    has_url_sha256 = "url_sha256" in frame.columns
     frame["url"] = frame[url_column].astype(str).str.strip()
     frame["source_label"] = frame[label_column].astype(str).str.strip().str.lower()
-    frame["url_sha256"] = frame["url"].map(
+    frame["calculated_url_sha256"] = frame["url"].map(
         lambda value: hashlib.sha256(value.encode("utf-8")).hexdigest()
     )
 
     hash_checks = {}
-    if "url_sha256" in frame.columns:
-        matches = (
-            frame["url_sha256"].astype(str).str.lower()
-            == frame["url_sha256"].map(str).str.lower()
-        )
-        # The comparison above uses the renamed calculated column; retain the
-        # source values separately and compare them explicitly below.
-        source_hashes = frame["url_sha256"].copy()
-        calculated_hashes = frame["url_sha256"].copy()
-        if "url_sha256" in frame.columns:
-            # Keep the original supplied values from the raw frame.
-            source_hashes = pd.read_csv(
-                dataset_path,
-                compression="infer",
-                usecols=["url_sha256"],
-                keep_default_na=False,
-            )["url_sha256"].astype(str).str.lower().reset_index(drop=True)
-            calculated_hashes = frame["url_sha256"].astype(str).str.lower().reset_index(drop=True)
+    if has_url_sha256:
+        source_hashes = frame["url_sha256"].astype(str).str.lower().reset_index(drop=True)
+        calculated_hashes = frame["calculated_url_sha256"].astype(str).str.lower().reset_index(drop=True)
         hash_checks["url_sha256_rows"] = int((source_hashes == calculated_hashes).sum())
         if not (source_hashes == calculated_hashes).all():
             raise ValueError("One or more URL values do not match the CSV's url_sha256 column.")
 
     if "source_id" in frame.columns:
         source_ids = frame["source_id"].astype(str).str.lower().reset_index(drop=True)
-        calculated = frame["url_sha256"].astype(str).str.lower().reset_index(drop=True)
+        calculated = frame["calculated_url_sha256"].astype(str).str.lower().reset_index(drop=True)
         hash_checks["source_id_rows"] = int((source_ids == calculated).sum())
         if not (source_ids == calculated).all():
             raise ValueError("One or more URL values do not match the CSV's source_id column.")
