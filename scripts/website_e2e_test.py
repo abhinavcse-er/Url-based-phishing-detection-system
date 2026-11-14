@@ -195,7 +195,7 @@ def main():
                 result_text = page.locator("#result").inner_text()
                 test["ui_shows_ml_disabled_notice"] = "Temporarily disabled after external testing" in result_text
                 test["ui_shows_external_failure_metrics"] = "93.06%" in result_text and "0.506" in result_text
-                test["ui_links_external_report"] = 'href="./phreshphish-external-validation-report.json"' in result_text
+                test["ui_links_external_report"] = page.locator('#result a[href="./phreshphish-external-validation-report.json"]').count() == 1
                 test["ui_shows_old_probability_copy"] = "Estimated phishing probability" in result_text
                 test["ui_shows_cors_error"] = "Failed to fetch" in result_text or "CORS" in result_text
                 expected_ok = test["heuristic_label"] == expected_label
