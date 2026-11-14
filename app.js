@@ -34,7 +34,7 @@
       ? '<div class="ml-result"><strong>Experimental ML pattern signal</strong><span>' + escapeHTML(ml.ml_label_text || "Pattern classification unavailable") + '</span>' +
         '<small class="ml-note">This experimental signal is not a real-world probability or a definitive safety verdict. It does not replace the heuristic assessment.</small></div>'
       : data && data.ml_status === "disabled"
-        ? '<div class="ml-result"><strong>ML model assessment</strong><small>Temporarily disabled after external testing found false positives on well-known legitimate domains. The scanner is currently using its explainable URL heuristics only.</small></div>'
+        ? '<div class="ml-result"><strong>ML model assessment — not enabled</strong><small>Temporarily disabled after external testing. V4 failed the independent PhreshPhish test: 93.06% false-positive rate on the strict cohort (release limit 1%) and 0.506 ROC-AUC. Live scans use explainable URL heuristics only. <a href="./phreshphish-external-validation-report.json" target="_blank" rel="noopener noreferrer">Read the external report</a>.</small></div>'
         : '<div class="ml-result"><strong>ML model assessment</strong><small>Unavailable for this scan.</small></div>';
     const reasons = Array.isArray(verdict.reasons) ? verdict.reasons : [];
     const reasonHTML = reasons.length ? reasons.map(item => '<li>' + escapeHTML(item.reason || "Risk indicator") + ' (+' + escapeHTML(item.points ?? 0) + ')</li>').join("") : "<li>No configured warning indicators were triggered.</li>";
