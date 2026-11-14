@@ -2,25 +2,25 @@
   "report_title": "PhishGuard Website Regression Test Report",
   "report_type": "controlled_browser_regression_test",
   "status": "passed",
-  "tested_at_utc": "2026-11-14T07:23:48Z",
+  "tested_at_utc": "2026-11-14T07:30:49Z",
   "published_site": "https://abhinavcse-er.github.io/Url-based-phishing-detection-system/",
   "api": "https://phishing-backend-2kib.onrender.com",
-  "tested_source_commit": "73ffc4c50cc0cc7624fe7b16089dad8839c27693",
-  "source_commit_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/commit/73ffc4c50cc0cc7624fe7b16089dad8839c27693",
-  "github_actions_run_id": 43570865595,
-  "github_actions_run_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43570865595",
-  "downloadable_report_artifact_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43570865595/artifacts/14103519979",
+  "tested_source_commit": "feb65598fd904fdb891ab9c611bcc29b19fc4fcd",
+  "source_commit_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/commit/feb65598fd904fdb891ab9c611bcc29b19fc4fcd",
+  "github_actions_run_id": 43571396343,
+  "github_actions_run_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43571396343",
+  "downloadable_report_artifact_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43571396343/artifacts/14104274508",
   "runner": "GitHub Actions hosted Ubuntu runner with Chromium and Playwright",
   "summary": {
-    "technical_checks_passed": 12,
-    "technical_checks_total": 12,
+    "technical_checks_passed": 15,
+    "technical_checks_total": 15,
     "url_regression_cases_passed": 10,
     "url_regression_cases_total": 10,
     "overall_regression_result": "PASS"
   },
   "technical_checks": [
     {
-      "name": "Published site returns HTTP 200",
+      "name": "Published GitHub Pages site returns HTTP 200",
       "result": "PASS"
     },
     {
@@ -36,11 +36,23 @@
       "result": "PASS"
     },
     {
+      "name": "Public Test Evidence section is visible",
+      "result": "PASS"
+    },
+    {
+      "name": "Evidence links include the original workflow run and tested source commit",
+      "result": "PASS"
+    },
+    {
+      "name": "Public verification-report.json is accessible and valid",
+      "result": "PASS"
+    },
+    {
       "name": "Render backend health endpoint returns HTTP 200",
       "result": "PASS"
     },
     {
-      "name": "Model inference is gated pending external validation",
+      "name": "ML inference is gated pending external validation",
       "result": "PASS"
     },
     {
@@ -64,7 +76,7 @@
       "result": "PASS"
     },
     {
-      "name": "Result UI shows the disabled-ML explanation",
+      "name": "No browser console errors",
       "result": "PASS"
     }
   ],
