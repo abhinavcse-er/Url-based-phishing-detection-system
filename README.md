@@ -35,7 +35,7 @@ window.PHISHING_API_BASE = "https://YOUR-BACKEND.onrender.com";
    ~~~
 5. Optional environment variable: ALLOWED_ORIGINS=https://abhinavcse-er.github.io.
 
-The default training sample is up to 50,000 URLs (balanced by class). Set ML_TRAIN_MAX_SAMPLES to change this. The dataset download URL and local cache path can be overridden with PHISHING_DATASET_URL and PHISHING_DATASET_PATH. ML_MAX_VALIDATION_FPR controls the validation false-positive ceiling; its default is 0.01 (1%).
+The default `python train_model.py` entry point now delegates to the V5 multi-source trainer. It samples up to 10,000 benign and 10,000 phishing URLs from each of three pinned development sources (60,000 total before domain partitioning). Set `ML_V5_MAX_PER_SOURCE_CLASS` to change the per-source cap. The validation target is 1% global false-positive rate and 2% maximum false-positive rate within each source; no-positive fallback is used when no useful threshold satisfies both constraints. The archived V4 trainer is retained as `train_model_v4.py`.
 
 ## Model v4 design
 
@@ -63,6 +63,36 @@ Model selection maximizes validation Matthews correlation coefficient (MCC) whil
 The source data is a balanced sample from the public [Phishing URL Dataset by Raja Muhammad Awais](https://github.com/RajaMuhammadAwais/phishing-url-dataset). It uses source labels 1=legitimate, 0=phishing; the trainer maps them to 0=legitimate, 1=phishing.
 
 **Important:** a domain-held-out split from the same source is not independent external validation. Calibration on a balanced sample does not make a score a real-world probability. No headline accuracy number should be treated as a production guarantee.
+
+## V5 multi-source design
+
+The current V5 trainer uses three pinned development corpora from [aI-area/PhishDetecting](https://github.com/aI-area/PhishDetecting), all with `url` and `phishing` columns (`0=benign`, `1=phishing`):
+
+| Source | Published rows | Development role |
+|---|---:|---|
+| PhishFusion | 105,752 | Training / calibration / validation / grouped test |
+| Ebbu2017 | 73,575 | Training / calibration / validation / grouped test |
+| PhishStorm | 95,911 | Training / calibration / validation / grouped test |
+
+The corpora are pinned to upstream commit `aedc3dd65fd92a187f5c174cd8a93a89588a98f6` and their Git blob hashes are checked before training. V5 removes invalid URLs, normalized URL duplicates, and conflicting normalized URL labels. It samples the same number of benign and phishing URLs from each source so a larger corpus cannot dominate the fit.
+
+V5 compares the same three URL-only model families as V4. Its nested splits use a local Public Suffix List snapshot including private suffixes, and are stratified by source and label. Training, calibration, validation, and final test domains do not overlap. Candidate thresholds must meet both the overall validation FPR ceiling and a per-source FPR ceiling; a zero-recall threshold is not considered useful. The final grouped test is report-only and is never used for selection.
+
+**External holdouts are not training data:** PhishTank and PhreshPhish are held aside for independent evaluation. The V5 workflow evaluates both after excluding normalized URL overlap, private-suffix-aware registered-domain overlap with all three development corpora, and every development domain recorded in the model artifact.
+
+Run V5 locally with:
+
+~~~bash
+python train_model_v5.py
+~~~
+
+Or use the default entry point:
+
+~~~bash
+python train_model.py
+~~~
+
+Run the reproducible multi-source workflow through [V5 GitHub Actions](https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/workflows/v5-multisource-validation.yml). It produces separate PhreshPhish and PhishTank JSON reports. A failed external gate is a valid evaluation outcome; it must not be bypassed by tuning on either external cohort.
 
 ## Independent external validation
 
@@ -166,7 +196,7 @@ The trainer always writes release_gate.status=pending_external_validation and re
 - POST /api/scan: analyze one URL.
 - POST /api/batch_scan: analyze up to 20 URLs.
 
-A successful current model build reports ml_model_version: 4 and ml_inference_status: disabled_pending_external_validation until the two-variable release gate is approved. If the model artifact is missing or fails to load, heuristic scanning remains available.
+A successful current model build can report model version 4 (archived) or 5 (multi-source). V5 training always writes a pending release gate, so `ml_inference_status` remains `disabled_pending_external_validation` until independent metrics are reviewed, the artifact is explicitly approved, and both runtime switches are deliberately set. If the model artifact is missing or fails to load, heuristic scanning remains available.
 
 ## Local development and tests
 
@@ -179,15 +209,15 @@ uvicorn server:app --reload --port 5500
 Run the lightweight regression suite without downloading the training dataset:
 
 ~~~bash
-python -m compileall -q server.py train_model.py url_features.py evaluate_external.py
+python -m compileall -q server.py train_model.py train_model_v4.py train_model_v5.py url_features.py evaluate_external.py evaluate_external_v5.py
 python -m unittest discover -s tests -v
 ~~~
 
-The GitHub Actions workflow named ML model v4 checks runs the same compile and unit-test checks on pushes and pull requests.
+The GitHub Actions workflow named ML model V5 multi-source checks runs the compile and regression suite. The separate V5 external workflow trains on the three development corpora and evaluates only on the PhishTank and PhreshPhish holdouts.
 
 ## Dataset and limitations
 
-The trainer currently uses the public [Phishing URL Dataset by Raja Muhammad Awais](https://github.com/RajaMuhammadAwais/phishing-url-dataset), which describes 200,000 labelled URLs compiled from UCI PhiUSIIL and Phishing.Database sources. Dataset labels and collection conditions can be noisy or stale. The balanced sampling design is useful for controlled comparisons but does not represent the prevalence of phishing in ordinary browsing.
+V5 training uses the pinned PhishFusion, Ebbu2017, and PhishStorm development corpora described above. PhishTank and PhreshPhish are not used for V5 fitting, calibration, feature selection, or threshold selection. Source labels and collection conditions can be noisy or stale, and the balanced sampling design does not represent phishing prevalence in ordinary browsing.
 
 The model uses URL text only. It cannot determine whether a page is actually malicious, whether a legitimate site has been compromised, or whether a live threat-intelligence source has reported a URL. The live heuristic score is an advisory URL-pattern score, not a guarantee of safety. Do not enter credentials based only on a low-risk result.
 
