@@ -1,168 +1,124 @@
 {
-  "report_title": "PhishGuard Website Regression Test Report",
-  "report_type": "controlled_browser_regression_test",
-  "status": "passed",
-  "tested_at_utc": "2026-11-14T07:36:38Z",
+  "report_title": "PhishGuard Website and External Validation Evidence",
+  "report_type": "controlled_browser_regression_and_independent_ml_validation_summary",
+  "status": "passed_with_ml_release_gate_failed",
+  "tested_at_utc": "2026-11-14T09:10:08Z",
   "published_site": "https://abhinavcse-er.github.io/Url-based-phishing-detection-system/",
   "api": "https://phishing-backend-2kib.onrender.com",
-  "tested_source_commit": "02578dbfcf67bd8bef12526442071c10d636a99b",
-  "source_commit_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/commit/02578dbfcf67bd8bef12526442071c10d636a99b",
-  "github_actions_run_id": 43571856740,
-  "github_actions_run_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43571856740",
-  "downloadable_report_artifact_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43571856740/artifacts/14104776086",
-  "runner": "GitHub Actions hosted Ubuntu runner with Chromium and Playwright",
+  "tested_source_commit": "43eea113f70b4a3f3e3312bf1fa27ada6ad88f3a",
+  "source_commit_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/commit/43eea113f70b4a3f3e3312bf1fa27ada6ad88f3a",
+  "github_actions_run_id": 43579215735,
+  "github_actions_run_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43579215735",
   "summary": {
-    "technical_checks_passed": 15,
-    "technical_checks_total": 15,
+    "technical_checks_passed": 16,
+    "technical_checks_total": 16,
     "url_regression_cases_passed": 10,
     "url_regression_cases_total": 10,
-    "overall_regression_result": "PASS"
+    "overall_regression_result": "PASS",
+    "external_ml_validation_result": "FAIL — DO NOT ENABLE"
   },
   "technical_checks": [
-    {
-      "name": "Published GitHub Pages site returns HTTP 200",
-      "result": "PASS"
-    },
-    {
-      "name": "Page title and scanner form load",
-      "result": "PASS"
-    },
-    {
-      "name": "URL input and Analyze button are present",
-      "result": "PASS"
-    },
-    {
-      "name": "Frontend API configuration is loaded",
-      "result": "PASS"
-    },
-    {
-      "name": "Public Test Evidence section is visible",
-      "result": "PASS"
-    },
-    {
-      "name": "Evidence links include the original workflow run and tested source commit",
-      "result": "PASS"
-    },
-    {
-      "name": "Public verification-report.json is accessible and valid",
-      "result": "PASS"
-    },
-    {
-      "name": "Render backend health endpoint returns HTTP 200",
-      "result": "PASS"
-    },
-    {
-      "name": "ML inference is gated pending external validation",
-      "result": "PASS"
-    },
-    {
-      "name": "Empty input validation works",
-      "result": "PASS"
-    },
-    {
-      "name": "Scan requests work through the published GitHub Pages origin",
-      "result": "PASS"
-    },
-    {
-      "name": "No legacy phishing-probability field is returned",
-      "result": "PASS"
-    },
-    {
-      "name": "No uncaught browser page errors",
-      "result": "PASS"
-    },
-    {
-      "name": "Mobile layout has no horizontal overflow",
-      "result": "PASS"
-    },
-    {
-      "name": "No browser console errors",
-      "result": "PASS"
-    }
+    "Published site returns HTTP 200",
+    "Page title and scanner form load",
+    "URL input and Analyze button are present",
+    "Frontend API configuration is loaded",
+    "Public Test Evidence section is visible",
+    "Browser and external evaluation report links are present",
+    "Public browser JSON report is accessible",
+    "Public PhreshPhish external report is accessible and its release gate is failed",
+    "Backend health endpoint returns HTTP 200",
+    "V4 model artifact is loaded but inference remains gated",
+    "Empty input validation works",
+    "Mobile layout has no horizontal overflow",
+    "No uncaught browser page errors",
+    "No browser console errors"
   ],
+  "ml_external_validation": {
+    "status": "FAILED_DO_NOT_ENABLE",
+    "run_id": 43577785231,
+    "run_url": "https://github.com/abhinavcse-er/Url-based-phishing-detection-system/actions/runs/43577785231",
+    "dataset": "PhreshPhish pinned test split",
+    "strict_cohort_rows": 108928,
+    "false_positive_rate": 0.930646,
+    "false_negative_rate": 0.103596,
+    "phishing_recall": 0.896404,
+    "roc_auc": 0.505832,
+    "mcc": -0.060903,
+    "maximum_allowed_false_positive_rate": 0.01,
+    "release_gate_passed": false,
+    "inference_enabled": false,
+    "detailed_report": "./phreshphish-external-validation-report.json"
+  },
+  "model_status": {
+    "inference": "disabled_pending_external_validation",
+    "reason": "The independent external false-positive gate failed. The backend keeps heuristic-only scanning active."
+  },
   "url_regression_results": [
     {
       "url": "https://www.google.com/",
       "expected": "probably_safe",
       "observed": "probably_safe",
-      "heuristic_score": 0,
       "result": "PASS"
     },
     {
       "url": "https://www.microsoft.com/",
       "expected": "probably_safe",
       "observed": "probably_safe",
-      "heuristic_score": 0,
       "result": "PASS"
     },
     {
       "url": "https://github.com/",
       "expected": "probably_safe",
       "observed": "probably_safe",
-      "heuristic_score": 0,
       "result": "PASS"
     },
     {
       "url": "https://www.wikipedia.org/",
       "expected": "probably_safe",
       "observed": "probably_safe",
-      "heuristic_score": 0,
       "result": "PASS"
     },
     {
       "url": "https://www.amazon.com/",
       "expected": "probably_safe",
       "observed": "probably_safe",
-      "heuristic_score": 0,
       "result": "PASS"
     },
     {
       "url": "https://example.org/",
       "expected": "probably_safe",
       "observed": "probably_safe",
-      "heuristic_score": 0,
       "result": "PASS"
     },
     {
       "url": "http://paypal-login-security.example.com/",
       "expected": "suspicious",
       "observed": "suspicious",
-      "heuristic_score": 55,
       "result": "PASS"
     },
     {
       "url": "https://secure-amazon.com/login",
       "expected": "suspicious",
       "observed": "suspicious",
-      "heuristic_score": 47,
       "result": "PASS"
     },
     {
       "url": "http://192.0.2.10/login",
       "expected": "suspicious",
       "observed": "suspicious",
-      "heuristic_score": 45,
       "result": "PASS"
     },
     {
       "url": "https://google.com.login.evil.xyz/",
       "expected": "likely_phishing",
       "observed": "likely_phishing",
-      "heuristic_score": 69,
       "result": "PASS"
     }
   ],
-  "model_status": {
-    "inference": "disabled_pending_external_validation",
-    "reason": "The previous external probe produced false positives on well-known legitimate domains. ML inference is disabled until it passes independent external validation."
-  },
-  "scope_and_limitations": [
-    "This report records a controlled set of browser and URL heuristic regression tests only.",
-    "The benign control URLs are a small fixed control set, not a representative sample of all legitimate websites.",
-    "The suspicious URLs are synthetic test cases and are not live malicious destinations.",
-    "A passing regression test does not establish real-world accuracy, zero false positives, zero false negatives, or safety of any website.",
-    "PhishGuard analyzes URL text and does not visit the submitted website.",
+  "limitations": [
+    "Controlled URL regressions do not establish real-world accuracy.",
+    "The PhreshPhish test is a curated research benchmark, not a probability sample of consumer browsing.",
+    "No submitted website was opened as part of model evaluation.",
     "A low heuristic score is not a guarantee that a website is safe."
-  ],
-  "report_integrity_note": "The run and source commit links point to the public GitHub repository records for independent inspection. This JSON is a static copy of the results from the recorded run; it is not a cryptographic signature."
+  ]
 }
