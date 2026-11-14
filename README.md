@@ -7,7 +7,7 @@ A responsive static frontend and FastAPI backend that combines explainable URL h
 - `index.html`, `styles.css`, `app.js`: Netlify static frontend.
 - `api-config.js`: public API base URL configuration.
 - `server.py`: FastAPI API, heuristic checks, and ML inference.
-- `train_model.py`: reproducible model training, probability calibration, and held-out evaluation.
+- `train_model.py`: reproducible model training, probability calibration, and registered-domain-held-out evaluation.
 - `models/`: generated model artifact and evaluation metrics (created during deployment).
 - `requirements.txt`: Python dependencies.
 
@@ -36,19 +36,23 @@ window.PHISHING_API_BASE = "https://YOUR-BACKEND.onrender.com";
 
 The default training sample is 50,000 URLs (up to 25,000 per class). Set `ML_TRAIN_MAX_SAMPLES` to change this. The dataset download URL can be overridden with `PHISHING_DATASET_URL`.
 
-## Model evaluation and calibration
+## Model evaluation and release gate
 
-The training pipeline creates three hostname-disjoint partitions:
+The training pipeline creates three registrable-domain-disjoint partitions using the bundled Public Suffix List snapshot:
 
 - Training set: fits the URL classifier.
 - Calibration set: applies sigmoid (Platt) calibration to the trained classifier.
 - Test set: remains untouched until final evaluation.
 
-URLs sharing the same normalized hostname are kept in the same partition to reduce hostname leakage between training and evaluation. The build logs and `/health` endpoint expose held-out test metrics: accuracy, balanced accuracy, phishing precision/recall/F1, ROC-AUC, and calibration diagnostics.
+URLs sharing the same registrable domain (eTLD+1) are kept in the same partition. This is stricter than separating only exact hostnames, because subdomains of the same site cannot be split across training and test.
 
-Calibration diagnostics compare the uncalibrated and calibrated model using Brier score, log loss, and expected calibration error (ECE). For these metrics, lower values generally indicate better probability calibration. Check the actual Render build output and `/health` response after deployment rather than assuming the model passed; the metrics are generated from the dataset used in that build.
+**ML inference is disabled by default.** A browser-level external test found that the model labelled Microsoft, GitHub, Amazon, and example.org as phishing-like. Until the false-positive behaviour is resolved with independent verified datasets, the model is retained only for training/evaluation diagnostics and does not influence live scan verdicts. Do not set `ENABLE_ML_INFERENCE=true` for production until the release gate is passed.
 
-**Important probability limitation:** the public dataset is sampled to create a balanced benchmark. Its phishing prevalence does not represent the prevalence of phishing among real users' submitted URLs. Calibration metrics therefore describe performance on that benchmark only; they do not establish real-world phishing probabilities. For this reason, the scanner intentionally shows the ML class prediction only and does not display a probability percentage.
+The live scanner uses explainable URL heuristics. These checks are indicators, not definitive safety verdicts. In particular, HTTPS alone does not mean a site is safe, and phishing can occur on legitimate hosting platforms.
+
+The build logs and `/health` endpoint expose held-out test metrics and calibration diagnostics. These are benchmark measurements only. Because the public source dataset is constructed from a balanced sample of legitimate URLs and active phishing URLs, neither calibration nor test accuracy establishes real-world phishing probabilities or accuracy.
+
+**Release gate before re-enabling ML:** test against a separately sourced, independently labelled set with verified benign and active phishing URLs; report false-positive rate and false-negative rate; ensure legitimate popular domains and shared-hosting platforms are not systematically flagged; document dataset dates and overlap checks; and keep a final time-based test set untouched until model selection is complete.
 
 ## Local development
 
@@ -62,7 +66,7 @@ uvicorn server:app --reload --port 5500
 
 The classifier is trained on the public [Phishing URL Dataset by Raja Muhammad Awais](https://github.com/RajaMuhammadAwais/phishing-url-dataset), which describes 200,000 labelled URLs (label 1 = legitimate, label 0 = phishing) compiled from UCI PhiUSIIL and Phishing.Database sources. The training script reverses the source labels into the API convention (0 = legitimate, 1 = phishing).
 
-The model uses URL text only; it does not open submitted websites. The heuristic score and ML classification are separate signals and neither is a definitive safety verdict. Dataset bias, stale labels, unseen domains, and changing attacker behavior can affect predictions. Do not enter credentials based solely on a low-risk result.
+The model uses URL text only; it does not open submitted websites. ML inference is currently disabled because the external false-positive test failed. The live heuristic score is an advisory URL-pattern score, not a guarantee of safety. Dataset bias, stale labels, unseen domains, and changing attacker behavior can affect predictions. Do not enter credentials based solely on a low-risk result.
 
 If the model artifact is missing or fails to load, the API deliberately keeps heuristic scanning available and reports ML as unavailable rather than inventing a prediction.
 
