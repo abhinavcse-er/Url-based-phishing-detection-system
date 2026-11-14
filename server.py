@@ -72,7 +72,7 @@ try:
             or not ML_METADATA.get("test_metrics")
             or not ML_METADATA.get("calibration_metrics")
             or ML_METADATA.get("decision_threshold") is None
-            or ML_METADATA.get("release_gate", {}).get("passed") is not False
+            or not isinstance(ML_METADATA.get("release_gate"), dict)
         ):
             raise ValueError(
                 "Model artifact is not a complete v4 candidate or its release-gate "
