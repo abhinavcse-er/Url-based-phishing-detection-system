@@ -1,0 +1,49 @@
+name: PhishGuard website browser tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/website_e2e_test.py"
+      - ".github/workflows/website-e2e-test.yml"
+      - "app.js"
+      - "index.html"
+      - "styles.css"
+      - "api-config.js"
+
+permissions:
+  contents: read
+
+jobs:
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install browser test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Test the published GitHub Pages website
+        env:
+          PHISHING_SITE_URL: https://abhinavcse-er.github.io/Url-based-phishing-detection-system/
+          PHISHING_API_BASE: https://phishing-backend-2kib.onrender.com
+        run: python scripts/website_e2e_test.py
+
+      - name: Upload website test report
+        if: always() && hashFiles('website_e2e_report.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: phishguard-website-e2e-report
+          path: website_e2e_report.json
+          if-no-files-found: ignore
