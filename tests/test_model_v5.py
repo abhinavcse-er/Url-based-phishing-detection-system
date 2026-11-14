@@ -77,6 +77,40 @@ class V5GroupedSplitTests(unittest.TestCase):
                 self.assertFalse(left_groups & right_groups)
 
 
+    def test_each_partition_keeps_all_sources_and_both_labels(self):
+        urls = []
+        targets = []
+        sources = []
+        groups = []
+        index = 0
+        for source in ("PhishFusion", "Ebbu2017", "PhishStorm"):
+            for label in (0, 1):
+                for _ in range(100):
+                    url = f"https://source{index}.com/{'login' if label else 'home'}"
+                    urls.append(url)
+                    targets.append(label)
+                    sources.append(source)
+                    groups.append(hostname_group(url))
+                    index += 1
+
+        partitions = make_grouped_splits(
+            pd.Series(urls),
+            pd.Series(targets),
+            pd.Series(groups),
+            pd.Series(sources),
+        )
+        source_series = pd.Series(sources)
+        target_series = pd.Series(targets)
+        for split_name, indexes in partitions.items():
+            self.assertEqual(source_series.iloc[indexes].nunique(), 3, split_name)
+            self.assertEqual(target_series.iloc[indexes].nunique(), 2, split_name)
+            for source in ("PhishFusion", "Ebbu2017", "PhishStorm"):
+                source_labels = set(
+                    target_series.iloc[indexes[source_series.iloc[indexes] == source]]
+                )
+                self.assertEqual(source_labels, {0, 1}, (split_name, source))
+
+
 class V5ThresholdTests(unittest.TestCase):
     def test_threshold_meets_global_and_every_source_fpr_limits(self):
         labels = []
