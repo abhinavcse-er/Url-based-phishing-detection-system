@@ -85,6 +85,7 @@ def main():
         )
         record("public_verification_links_present", (
             any(link["href"] == "./verification-report.json" for link in verification_links)
+            and any(link["href"] == "./phreshphish-external-validation-report.json" for link in verification_links)
             and any("/actions/workflows/website-e2e-test.yml" in (link["href"] or "") for link in verification_links)
             and any("/tree/main" in (link["href"] or "") for link in verification_links)
         ), {"links": verification_links})
@@ -105,6 +106,38 @@ def main():
             })
         except Exception as exc:
             record("public_json_report_accessible_and_valid", False, {"error": str(exc)})
+
+        try:
+            external_response = page.request.get(
+                SITE_URL.rstrip("/") + "/phreshphish-external-validation-report.json",
+                timeout=30000,
+            )
+            external_report = external_response.json()
+            strict_metrics = (
+                external_report.get("external_cohorts", {})
+                .get("strict_development_domain_disjoint", {})
+                .get("metrics", {})
+            )
+            gate_checks = external_report.get("release_gate", {})
+            release_decision = external_report.get("release_decision", {})
+            report_ok = (
+                external_response.status == 200
+                and release_decision.get("status") == "FAILED_DO_NOT_ENABLE"
+                and release_decision.get("live_ml_inference_enabled") is False
+                and gate_checks.get("candidate_passed") is False
+                and strict_metrics.get("false_positive_rate", 1) > 0.01
+                and strict_metrics.get("roc_auc", 1) < 0.60
+            )
+            record("public_external_ml_report_accessible_and_gate_failed", report_ok, {
+                "http_status": external_response.status,
+                "release_status": release_decision.get("status"),
+                "strict_false_positive_rate": strict_metrics.get("false_positive_rate"),
+                "strict_roc_auc": strict_metrics.get("roc_auc"),
+            })
+        except Exception as exc:
+            record("public_external_ml_report_accessible_and_gate_failed", False, {
+                "error": str(exc)
+            })
 
         # Verify the API health endpoint directly as well as through browser CORS.
         try:
@@ -161,6 +194,8 @@ def main():
                 test["browser_result_visible"] = page.locator("#result").inner_text().strip() != ""
                 result_text = page.locator("#result").inner_text()
                 test["ui_shows_ml_disabled_notice"] = "Temporarily disabled after external testing" in result_text
+                test["ui_shows_external_failure_metrics"] = "93.06%" in result_text and "0.506" in result_text
+                test["ui_links_external_report"] = 'href="./phreshphish-external-validation-report.json"' in result_text
                 test["ui_shows_old_probability_copy"] = "Estimated phishing probability" in result_text
                 test["ui_shows_cors_error"] = "Failed to fetch" in result_text or "CORS" in result_text
                 expected_ok = test["heuristic_label"] == expected_label
@@ -172,6 +207,8 @@ def main():
                     and body.get("ml_result") is None
                     and test["browser_result_visible"]
                     and test["ui_shows_ml_disabled_notice"]
+                    and test["ui_shows_external_failure_metrics"]
+                    and test["ui_links_external_report"]
                     and not test["legacy_probability_field_present"]
                     and not test["ui_shows_old_probability_copy"]
                     and expected_ok
