@@ -1,74 +1,142 @@
 # PhishGuard — URL-based Phishing Detection
 
-A responsive static frontend and FastAPI backend that combines explainable URL heuristics with a trained machine-learning URL classifier.
+PhishGuard is an educational URL-analysis project with a static frontend and a FastAPI backend. The live scanner uses explainable URL heuristics. Its experimental machine-learning model is kept behind an external-validation release gate.
 
 ## Project structure
 
-- `index.html`, `styles.css`, `app.js`: Netlify static frontend.
-- `api-config.js`: public API base URL configuration.
-- `server.py`: FastAPI API, heuristic checks, and ML inference.
-- `train_model.py`: reproducible model training, probability calibration, and registered-domain-held-out evaluation.
-- `models/`: generated model artifact and evaluation metrics (created during deployment).
-- `requirements.txt`: Python dependencies.
+- index.html, styles.css, app.js: static frontend.
+- api-config.js: public API base URL configuration.
+- server.py: FastAPI API, explainable heuristics, and gated ML inference.
+- url_features.py: deterministic URL-only structural feature extraction used by model v4.
+- train_model.py: training, grouped data partitioning, model comparison, calibration, and validation-threshold selection.
+- evaluate_external.py: evaluation against a separately sourced labelled CSV, including development-domain overlap checks.
+- models/: generated model artifact and training metrics (created during deployment).
+- requirements.txt: Python dependencies.
 
-## Deploy the frontend on Netlify
+## Deploy the frontend on GitHub Pages or Netlify
 
-Deploy the repository root as a static site. Set `window.PHISHING_API_BASE` in `api-config.js` to your Render API URL:
-```js
+Deploy the repository root as a static site. The public backend address is configured in api-config.js:
+
+~~~js
 window.PHISHING_API_BASE = "https://YOUR-BACKEND.onrender.com";
-```
+~~~
 
 ## Deploy the API on Render
 
-1. Create a **Web Service** connected to this repository; use the repository root as Root Directory.
+1. Create a Web Service connected to this repository; use the repository root as Root Directory.
 2. Runtime: Python.
-3. **Build command:**
-   ```bash
+3. Build command:
+   ~~~bash
    pip install -r requirements.txt && python train_model.py
-   ```
-   This downloads the labelled URL corpus, trains a character n-gram TF-IDF + Logistic Regression model, calibrates it on a separate set of hostnames, and reports metrics on a final hostname-held-out test set.
-4. **Start command:**
-   ```bash
+   ~~~
+4. Start command:
+   ~~~bash
    gunicorn server:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
-   ```
-5. Optional environment variable: `ALLOWED_ORIGINS=https://detectphishing.netlify.app`.
-6. Deploy, then open `https://YOUR-BACKEND.onrender.com/health`. A successful current model deployment reports `"ml_model": "loaded"` and `"ml_evaluation_status": "available"`.
+   ~~~
+5. Optional environment variable: ALLOWED_ORIGINS=https://abhinavcse-er.github.io.
 
-The default training sample is 50,000 URLs (up to 25,000 per class). Set `ML_TRAIN_MAX_SAMPLES` to change this. The dataset download URL can be overridden with `PHISHING_DATASET_URL`.
+The default training sample is up to 50,000 URLs (balanced by class). Set ML_TRAIN_MAX_SAMPLES to change this. The dataset download URL and local cache path can be overridden with PHISHING_DATASET_URL and PHISHING_DATASET_PATH. ML_MAX_VALIDATION_FPR controls the validation false-positive ceiling; its default is 0.01 (1%).
 
-## Model evaluation and release gate
+## Model v4 design
 
-The training pipeline creates three registrable-domain-disjoint partitions using the bundled Public Suffix List snapshot:
+The v4 pipeline compares three URL-only model candidates:
 
-- Training set: fits the URL classifier.
-- Calibration set: applies sigmoid (Platt) calibration to the trained classifier.
-- Test set: remains untouched until final evaluation.
+| Candidate | Representation |
+|---|---|
+| Character baseline | Character TF-IDF n-grams + Logistic Regression |
+| Hybrid candidate | Character TF-IDF + word TF-IDF + 36 URL structure features + Logistic Regression |
+| Structured baseline | URL structure features + HistGradientBoosting |
 
-URLs sharing the same registrable domain (eTLD+1) are kept in the same partition. This is stricter than separating only exact hostnames, because subdomains of the same site cannot be split across training and test.
+The structural features are extracted offline from the submitted URL string. They include URL/host/path lengths, subdomain and digit counts, query structure, URL entropy, punycode/IP/port indicators, suspicious-word counts, redirect-parameter indicators, and other lexical properties. The feature extractor does not resolve DNS, query WHOIS, visit websites, or fetch page content.
 
-**ML inference is disabled by default.** A browser-level external test found that the model labelled Microsoft, GitHub, Amazon, and example.org as phishing-like. Until the false-positive behaviour is resolved with independent verified datasets, the model is retained only for training/evaluation diagnostics and does not influence live scan verdicts. Do not set `ENABLE_ML_INFERENCE=true` for production until the release gate is passed.
+### Training and evaluation protocol
 
-The live scanner uses explainable URL heuristics. These checks are indicators, not definitive safety verdicts. In particular, HTTPS alone does not mean a site is safe, and phishing can occur on legitimate hosting platforms.
+The trainer creates four registrable-domain-disjoint partitions using the offline Public Suffix List snapshot:
 
-The build logs and `/health` endpoint expose held-out test metrics and calibration diagnostics. These are benchmark measurements only. Because the public source dataset is constructed from a balanced sample of legitimate URLs and active phishing URLs, neither calibration nor test accuracy establishes real-world phishing probabilities or accuracy.
+- Training set: fits candidate models.
+- Calibration set: fits sigmoid (Platt) calibration.
+- Validation set: selects the candidate and a decision threshold.
+- Final test set: reports performance once; it is not used for model or threshold selection.
 
-**Release gate before re-enabling ML:** test against a separately sourced, independently labelled set with verified benign and active phishing URLs; report false-positive rate and false-negative rate; ensure legitimate popular domains and shared-hosting platforms are not systematically flagged; document dataset dates and overlap checks; and keep a final time-based test set untouched until model selection is complete.
+Model selection maximizes validation Matthews correlation coefficient (MCC) while requiring the validation false-positive rate to stay at or below ML_MAX_VALIDATION_FPR. The final test report includes false-positive rate, false-negative rate, precision, recall, F1, MCC, ROC-AUC, average precision, and a confusion matrix.
 
-## Local development
+The source data is a balanced sample from the public [Phishing URL Dataset by Raja Muhammad Awais](https://github.com/RajaMuhammadAwais/phishing-url-dataset). It uses source labels 1=legitimate, 0=phishing; the trainer maps them to 0=legitimate, 1=phishing.
 
-```bash
+**Important:** a domain-held-out split from the same source is not independent external validation. Calibration on a balanced sample does not make a score a real-world probability. No headline accuracy number should be treated as a production guarantee.
+
+## Independent external validation
+
+Before enabling model inference, obtain a separately sourced and independently labelled CSV with both benign and phishing examples. Keep source provenance, collection dates, label definitions, and redistribution terms.
+
+Example for a CSV with URL and Label columns where 0=phishing and 1=legitimate:
+
+~~~bash
+python evaluate_external.py \
+  --dataset independent_urls.csv \
+  --url-column URL \
+  --label-column Label \
+  --phishing-label 0 \
+  --benign-label 1 \
+  --minimum-per-class 500 \
+  --max-fpr 0.01 \
+  --min-recall 0.80 \
+  --output external_validation_report.json
+~~~
+
+For other datasets, set the column names and positive/negative label values explicitly. The evaluator never visits URLs. It reports results for the full external sample and for registrable sites that do not overlap any development partition. It also writes a dataset SHA-256 digest. It does not automatically edit the model artifact or enable inference.
+
+### Production inference release gate
+
+Live ML inference requires **both** environment variables:
+
+- ENABLE_ML_INFERENCE=true
+- ML_EXTERNAL_VALIDATION_APPROVED=true
+
+Leave both unset or false while external validation is pending. The second variable is an explicit operator approval and must only be enabled after reviewing the independent evaluation report, source and label quality, site overlap, error examples, collection dates, false-positive rate, false-negative rate, and recall. Setting only ENABLE_ML_INFERENCE=true will not enable ML.
+
+The current training artifact deliberately records release_gate.status=pending_external_validation. Production scans continue to use explainable URL heuristics until an independent evaluation has been reviewed and approved.
+
+## API
+
+- GET /: service status and model version.
+- GET /health: model status, selected candidate, held-out evaluation metrics, threshold diagnostics, and release-gate status.
+- POST /api/scan: analyze one URL.
+- POST /api/batch_scan: analyze up to 20 URLs.
+
+A successful current model build reports ml_model_version: 4 and ml_inference_status: disabled_pending_external_validation until the two-variable release gate is approved. If the model artifact is missing or fails to load, heuristic scanning remains available.
+
+## Local development and tests
+
+~~~bash
 pip install -r requirements.txt
 python train_model.py
 uvicorn server:app --reload --port 5500
-```
+~~~
+
+Run the lightweight regression suite without downloading the training dataset:
+
+~~~bash
+python -m compileall -q server.py train_model.py url_features.py evaluate_external.py
+python -m unittest discover -s tests -v
+~~~
+
+The GitHub Actions workflow named ML model v4 checks runs the same compile and unit-test checks on pushes and pull requests.
 
 ## Dataset and limitations
 
-The classifier is trained on the public [Phishing URL Dataset by Raja Muhammad Awais](https://github.com/RajaMuhammadAwais/phishing-url-dataset), which describes 200,000 labelled URLs (label 1 = legitimate, label 0 = phishing) compiled from UCI PhiUSIIL and Phishing.Database sources. The training script reverses the source labels into the API convention (0 = legitimate, 1 = phishing).
+The trainer currently uses the public [Phishing URL Dataset by Raja Muhammad Awais](https://github.com/RajaMuhammadAwais/phishing-url-dataset), which describes 200,000 labelled URLs compiled from UCI PhiUSIIL and Phishing.Database sources. Dataset labels and collection conditions can be noisy or stale. The balanced sampling design is useful for controlled comparisons but does not represent the prevalence of phishing in ordinary browsing.
 
-The model uses URL text only; it does not open submitted websites. ML inference is currently disabled because the external false-positive test failed. The live heuristic score is an advisory URL-pattern score, not a guarantee of safety. Dataset bias, stale labels, unseen domains, and changing attacker behavior can affect predictions. Do not enter credentials based solely on a low-risk result.
+The model uses URL text only. It cannot determine whether a page is actually malicious, whether a legitimate site has been compromised, or whether a live threat-intelligence source has reported a URL. The live heuristic score is an advisory URL-pattern score, not a guarantee of safety. Do not enter credentials based only on a low-risk result.
 
-If the model artifact is missing or fails to load, the API deliberately keeps heuristic scanning available and reports ML as unavailable rather than inventing a prediction.
+## Research inspiration
+
+The implementation was informed by ideas and evaluation practices from these public projects; their source code was not copied into this repository:
+
+- [phishing-unseen-site-evaluation](https://github.com/SaraArif6198/phishing-unseen-site-evaluation) — registrable-site-disjoint evaluation and careful comparison of URL feature and character-text model families.
+- [PhishDriftBench](https://github.com/rajeswari-30/phishdriftbench) — source-shift evaluation, URL-only feature modelling, false-positive/false-negative analysis, and selective release controls.
+- [PhishDetecting / LitePhish](https://github.com/aI-area/PhishDetecting) — URL-intrinsic feature engineering and external-dataset evaluation practices.
+
+These repositories are research references, not evidence that PhishGuard has achieved the performance reported by those projects.
 
 ## Author
 
