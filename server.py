@@ -71,7 +71,7 @@ try:
             or ML_METADATA.get("feature_schema_version") != 1
             or not ML_METADATA.get("test_metrics")
             or not ML_METADATA.get("calibration_metrics")
-            or not ML_METADATA.get("decision_threshold")
+            or ML_METADATA.get("decision_threshold") is None
             or ML_METADATA.get("release_gate", {}).get("passed") is not False
         ):
             raise ValueError(
