@@ -4,3 +4,4 @@ gunicorn>=22.0,<28.0
 scikit-learn>=1.6,<2.0
 joblib>=1.4,<2.0
 pandas>=2.2,<4.0
+tldextract>=5.1,<6
