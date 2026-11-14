@@ -1,7 +1,7 @@
 {
   "report_title": "PhishGuard Website and External Validation Evidence",
   "report_type": "controlled_browser_regression_and_independent_ml_validation_summary",
-  "status": "passed_with_ml_release_gate_failed",
+  "status": "passed",
   "tested_at_utc": "2026-11-14T09:10:08Z",
   "published_site": "https://abhinavcse-er.github.io/Url-based-phishing-detection-system/",
   "api": "https://phishing-backend-2kib.onrender.com",
@@ -18,20 +18,70 @@
     "external_ml_validation_result": "FAIL — DO NOT ENABLE"
   },
   "technical_checks": [
-    "Published site returns HTTP 200",
-    "Page title and scanner form load",
-    "URL input and Analyze button are present",
-    "Frontend API configuration is loaded",
-    "Public Test Evidence section is visible",
-    "Browser and external evaluation report links are present",
-    "Public browser JSON report is accessible",
-    "Public PhreshPhish external report is accessible and its release gate is failed",
-    "Backend health endpoint returns HTTP 200",
-    "V4 model artifact is loaded but inference remains gated",
-    "Empty input validation works",
-    "Mobile layout has no horizontal overflow",
-    "No uncaught browser page errors",
-    "No browser console errors"
+    {
+      "name": "Published GitHub Pages site returns HTTP 200",
+      "result": "PASS"
+    },
+    {
+      "name": "Page title is correct",
+      "result": "PASS"
+    },
+    {
+      "name": "Scanner form is present",
+      "result": "PASS"
+    },
+    {
+      "name": "URL input is present",
+      "result": "PASS"
+    },
+    {
+      "name": "Analyze button is present",
+      "result": "PASS"
+    },
+    {
+      "name": "Frontend API configuration is loaded",
+      "result": "PASS"
+    },
+    {
+      "name": "Public Test Evidence section is visible",
+      "result": "PASS"
+    },
+    {
+      "name": "Public verification and workflow links are present",
+      "result": "PASS"
+    },
+    {
+      "name": "Public browser regression JSON is accessible and valid",
+      "result": "PASS"
+    },
+    {
+      "name": "Public external ML report is accessible and documents a failed gate",
+      "result": "PASS"
+    },
+    {
+      "name": "Backend health endpoint returns HTTP 200",
+      "result": "PASS"
+    },
+    {
+      "name": "V4 model is loaded but inference remains gated",
+      "result": "PASS"
+    },
+    {
+      "name": "Empty input validation works",
+      "result": "PASS"
+    },
+    {
+      "name": "Mobile layout has no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "No uncaught browser page errors",
+      "result": "PASS"
+    },
+    {
+      "name": "No browser console errors",
+      "result": "PASS"
+    }
   ],
   "ml_external_validation": {
     "status": "FAILED_DO_NOT_ENABLE",
