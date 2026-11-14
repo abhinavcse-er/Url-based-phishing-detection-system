@@ -18,12 +18,13 @@ import joblib
 import pandas as pd
 import tldextract
 
-from train_model import (
+from train_model_v4 import (
     classification_metrics,
     hash_site,
-    hostname_group,
+    hostname_group as hostname_group_v4,
     positive_class_probabilities,
 )
+from train_model_v5 import hostname_group as hostname_group_v5
 
 
 PRIVATE_DOMAIN_EXTRACTOR = tldextract.TLDExtract(
@@ -63,7 +64,10 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def normalized_http_url(value: str) -> tuple[str, str, str] | None:
+def normalized_http_url(
+    value: str,
+    domain_group_fn=hostname_group_v4,
+) -> tuple[str, str, str] | None:
     """Return overlap key, trainer eTLD+1, and private-suffix-aware eTLD+1.
 
     This normalization is only for exclusion checks. Model predictions always
@@ -87,7 +91,7 @@ def normalized_http_url(value: str) -> tuple[str, str, str] | None:
             parsed.query,
             "",
         ))
-        trainer_site = hostname_group(text)
+        trainer_site = domain_group_fn(text)
         private_extract = PRIVATE_DOMAIN_EXTRACTOR(hostname)
         private_site = (
             private_extract.top_domain_under_public_suffix or hostname
@@ -138,6 +142,7 @@ def load_external_dataset(
     label_column: str,
     phishing_label: str,
     benign_label: str,
+    domain_group_fn=hostname_group_v4,
 ) -> tuple[pd.DataFrame, dict]:
     """Validate hashes, HTTP(S) URLs, labels, conflicts, and normalized duplicates."""
     frame = pd.read_csv(
@@ -184,7 +189,9 @@ def load_external_dataset(
     overlength_rows = int((~length_mask).sum())
     frame = frame.loc[length_mask].copy()
 
-    parsed = frame["url"].map(normalized_http_url)
+    parsed = frame["url"].map(
+        lambda value: normalized_http_url(value, domain_group_fn)
+    )
     valid_mask = parsed.notna()
     invalid_url_rows = int((~valid_mask).sum())
     frame = frame.loc[valid_mask].copy()
@@ -272,15 +279,20 @@ def main() -> None:
     saved_model = joblib.load(model_path)
     metadata = saved_model.get("metadata", {})
     pipeline = saved_model.get("pipeline")
-    if pipeline is None or metadata.get("model_version") != 4:
-        raise RuntimeError("The supplied artifact is not a compatible PhishGuard v4 model.")
+    model_version = metadata.get("model_version")
+    if pipeline is None or model_version not in {4, 5}:
+        raise RuntimeError("The supplied artifact is not a compatible PhishGuard V4/V5 model.")
 
+    domain_group_fn = (
+        hostname_group_v5 if model_version == 5 else hostname_group_v4
+    )
     frame, cleaning = load_external_dataset(
         dataset_path,
         args.url_column,
         args.label_column,
         args.phishing_label,
         args.benign_label,
+        domain_group_fn=domain_group_fn,
     )
 
     source_diagnostics = None
@@ -313,7 +325,7 @@ def main() -> None:
     development_hashes = set(metadata.get("development_site_hashes", []))
     if not development_hashes:
         raise RuntimeError(
-            "Model artifact has no development-site manifest; retrain with the v4 trainer."
+            "Model artifact has no development-site manifest; retrain with the matching V4/V5 trainer."
         )
 
     if source_domain_disjoint_frame is not None:
