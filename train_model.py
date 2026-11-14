@@ -178,7 +178,7 @@ def main():
             min_df=2,
             max_features=40000,
             sublinear_tf=True,
-            dtype=float,
+            dtype=np.float32,
         )),
         ("classifier", LogisticRegression(
             C=4.0,
