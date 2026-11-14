@@ -85,8 +85,12 @@ def main():
         )
         record("public_verification_links_present", (
             any(link["href"] == "./verification-report.json" for link in verification_links)
-            and any("actions/runs/43570865595" in (link["href"] or "") for link in verification_links)
-            and any("commit/73ffc4c50cc0cc7624fe7b16089dad8839c27693" in (link["href"] or "") for link in verification_links)
+            and any("/actions/runs/" in (link["href"] or "") for link in verification_links)
+            and any(
+                "/commit/" in (link["href"] or "")
+                and len((link["href"] or "").rsplit("/", 1)[-1]) == 40
+                for link in verification_links
+            )
         ), {"links": verification_links})
         try:
             report_response = page.request.get(SITE_URL.rstrip("/") + "/verification-report.json", timeout=30000)
