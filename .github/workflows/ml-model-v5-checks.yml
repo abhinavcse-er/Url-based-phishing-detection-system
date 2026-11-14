@@ -1,0 +1,49 @@
+name: ML model V5 multi-source checks
+
+on:
+  push:
+    branches:
+      - ml-model-v5-multisource
+    paths:
+      - "train_model.py"
+      - "train_model_v4.py"
+      - "train_model_v5.py"
+      - "url_features.py"
+      - "server.py"
+      - "evaluate_external.py"
+      - "evaluate_external_v5.py"
+      - "tests/**"
+      - ".github/workflows/ml-model-v5-checks.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v5-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Compile V4/V5 and API modules
+        run: |
+          python -m compileall -q server.py train_model.py train_model_v4.py train_model_v5.py url_features.py evaluate_external.py evaluate_external_v5.py
+
+      - name: Run all regression tests
+        run: python -m unittest discover -s tests -v
+
