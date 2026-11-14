@@ -72,7 +72,7 @@
       <div class="steps">
         <article><span class="step-no">01</span><div class="step-icon">↗</div><h3>Paste a URL</h3><p>Submit the link you received in a message, email, or website.</p></article>
         <article><span class="step-no">02</span><div class="step-icon">⌕</div><h3>Analyze signals</h3><p>We inspect URL structure, domain patterns, and common warning signs.</p></article>
-        <article><span class="step-no">03</span><div class="step-icon">✓</div><h3>Review the result</h3><p>Read the heuristic warning score and its reasons. Experimental ML inference is paused pending external validation.</p></article>
+        <article><span class="step-no">03</span><div class="step-icon">✓</div><h3>Review the result</h3><p>Read the heuristic warning score and its reasons. The experimental v4 ML candidate is being evaluated separately and does not affect live verdicts.</p></article>
       </div>
     </section>
     <section class="about-section" id="about">
@@ -82,7 +82,7 @@
         <div class="about-copy">
           <h3>What is PhishGuard?</h3>
           <p>PhishGuard is a free, educational URL phishing detection project created by <strong>Abhinav Kumar Mishra</strong>. It helps users inspect a website address for common phishing indicators before opening a link.</p>
-          <p>The scanner checks URL characteristics such as suspicious wording, brand impersonation, unusual hostname patterns, IP-based addresses and other configured warning signals. It currently relies on explainable URL heuristics; machine-learning inference is temporarily disabled after external testing exposed false positives. Neither a low score nor a suspicious score is a definitive safety verdict.</p>
+          <p>The scanner checks URL characteristics such as suspicious wording, brand impersonation, unusual hostname patterns, IP-based addresses and other configured warning signals. The v4 ML candidate compares character patterns, word patterns and structural URL features, but it remains disabled while independent validation is pending. Live scans continue to use explainable URL heuristics. Neither a low score nor a suspicious score is a definitive safety verdict.</p>
           <h3>Why use a URL checker?</h3>
           <p>Phishing links can imitate trusted websites to trick people into sharing passwords, financial details or personal information. Checking an unfamiliar URL is one useful precaution—but it should never replace careful browsing habits.</p>
           <p class="about-author">Project creator: <a href="https://github.com/abhinavcse-er" target="_blank" rel="noopener noreferrer">Abhinav Kumar Mishra on GitHub</a></p>
@@ -134,7 +134,7 @@
           </tbody>
         </table>
       </div>
-      <p class="verification-model-note"><strong>Model transparency:</strong> ML inference is currently disabled because a prior external probe misclassified well-known legitimate websites. It will remain disabled until it passes broader, independent validation. The current website uses explainable URL heuristics only.</p>
+      <p class="verification-model-note"><strong>Model transparency:</strong> The v4 training pipeline now compares character-text, hybrid text-plus-URL-feature, and structured-feature models. A separate validation set controls the false-positive threshold. This is an experimental candidate, not a production accuracy claim; live ML inference remains disabled until a separately sourced external evaluation is reviewed. The current website uses explainable URL heuristics only.</p>
       <p class="verification-source">Tested source commit: <code>feb65598fd904fdb891ab9c611bcc29b19fc4fcd</code> · <a href="https://github.com/abhinavcse-er/Url-based-phishing-detection-system" target="_blank" rel="noopener noreferrer">Public source repository</a></p>
     </section>
     <section class="faq-section" aria-labelledby="faq-title">
