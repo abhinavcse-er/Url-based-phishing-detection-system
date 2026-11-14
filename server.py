@@ -82,8 +82,9 @@ try:
 
         if ML_MODEL is None:
             raise ValueError("Model artifact does not contain a pipeline.")
+        supported_versions = {4, 5}
         if (
-            ML_METADATA.get("model_version") != 4
+            ML_METADATA.get("model_version") not in supported_versions
             or ML_METADATA.get("feature_schema_version") != 1
             or not ML_METADATA.get("test_metrics")
             or not ML_METADATA.get("calibration_metrics")
@@ -91,12 +92,13 @@ try:
             or not isinstance(ML_METADATA.get("release_gate"), dict)
         ):
             raise ValueError(
-                "Model artifact is not a complete v4 candidate or its release-gate "
-                "metadata is unexpected. Rebuild it using train_model.py."
+                "Model artifact is not a complete supported V4/V5 candidate or its "
+                "release-gate metadata is unexpected. Rebuild it using train_model.py."
             )
 
         logger.info(
-            "PhishGuard ML v4 candidate loaded: %s",
+            "PhishGuard ML v%s candidate loaded: %s",
+            ML_METADATA.get("model_version", "unknown"),
             ML_METADATA.get("selected_model", "unknown"),
         )
     else:
