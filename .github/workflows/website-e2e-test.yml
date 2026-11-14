@@ -6,7 +6,11 @@ on:
     branches: [main]
     paths:
       - "scripts/website_e2e_test.py"
+      - "scripts/smoke_test_heuristics.py"
       - ".github/workflows/website-e2e-test.yml"
+      - "server.py"
+      - "train_model.py"
+      - "requirements.txt"
       - "app.js"
       - "index.html"
       - "styles.css"
