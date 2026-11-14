@@ -33,6 +33,12 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import StratifiedGroupKFold
 from sklearn.pipeline import Pipeline
+import tldextract
+
+DOMAIN_EXTRACTOR = tldextract.TLDExtract(
+    suffix_list_urls=(),
+    fallback_to_snapshot=True,
+)
 
 DATA_URL = os.getenv(
     "PHISHING_DATASET_URL",
@@ -44,7 +50,7 @@ MODEL_PATH = MODEL_DIR / "url_phishing_model.joblib"
 METRICS_PATH = MODEL_DIR / "training_metrics.json"
 MAX_SAMPLES = max(1000, int(os.getenv("ML_TRAIN_MAX_SAMPLES", "50000")))
 RANDOM_STATE = 42
-MODEL_VERSION = 2
+MODEL_VERSION = 3
 
 
 def download_dataset():
@@ -63,13 +69,16 @@ def download_dataset():
 
 
 def hostname_group(url: str) -> str:
-    """Return a normalized hostname so URLs from one host stay in one split."""
+    """Group URLs by registrable domain (eTLD+1), not merely exact hostname."""
     candidate = url if "://" in url else "http://" + url
     try:
-        hostname = urlsplit(candidate).hostname
+        hostname = (urlsplit(candidate).hostname or "").lower().rstrip(".")
     except ValueError:
-        hostname = None
-    return (hostname or url).lower().rstrip(".")
+        hostname = ""
+    if not hostname:
+        return url.lower().strip()
+    extracted = DOMAIN_EXTRACTOR(hostname)
+    return (extracted.top_domain_under_public_suffix or hostname).lower()
 
 
 def split_by_hostname(urls, targets, groups, n_splits, random_state):
@@ -248,7 +257,8 @@ def main():
         "training_unique_hosts": int(len(train_hosts)),
         "calibration_unique_hosts": int(len(calibration_hosts)),
         "test_unique_hosts": int(len(test_hosts)),
-        "split_strategy": "StratifiedGroupKFold by normalized hostname; no hostname overlap between splits",
+        "split_strategy": "StratifiedGroupKFold by registrable domain (eTLD+1); no registrable-domain overlap between splits",
+        "domain_grouping": "eTLD+1 using bundled Public Suffix List snapshot",
         "test_metrics": test_metrics,
         "calibration_metrics": calibration_metrics,
         "label_mapping": {"0": "legitimate", "1": "phishing"},
