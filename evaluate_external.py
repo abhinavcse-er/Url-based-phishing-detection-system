@@ -150,9 +150,12 @@ def load_external_dataset(
         raise ValueError(f"External CSV is missing required columns: {sorted(missing)}")
 
     frame = frame.copy()
-    frame["url"] = frame[url_column].astype(str).str.strip()
+    # Verify source hashes against the untouched CSV value before trimming any
+    # surrounding whitespace (including non-breaking spaces).
+    frame["raw_url"] = frame[url_column].astype(str)
+    frame["url"] = frame["raw_url"].str.strip()
     frame["source_label"] = frame[label_column].astype(str).str.strip().str.lower()
-    frame["calculated_url_sha256"] = frame["url"].map(
+    frame["calculated_url_sha256"] = frame["raw_url"].map(
         lambda value: hashlib.sha256(value.encode("utf-8")).hexdigest()
     )
 
