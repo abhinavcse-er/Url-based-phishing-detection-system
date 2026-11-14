@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 from server import ml_inference_gate
+from evaluate_external import load_external_dataset
 from train_model import (
     build_model_candidates,
     hostname_group,
@@ -109,6 +110,41 @@ class ModelPipelineSmokeTests(unittest.TestCase):
                 scores = candidate.predict_proba(urls)
                 self.assertEqual(scores.shape, (len(urls), 2))
                 self.assertTrue(np.isfinite(scores).all())
+
+
+class ExternalDatasetCleaningTests(unittest.TestCase):
+    def test_cleaner_removes_invalid_urls_normalized_duplicates_and_conflicts(self):
+        import tempfile
+        from pathlib import Path
+        import pandas as pd
+
+        rows = [
+            {"url": "https://www.google.com/", "label": "benign"},
+            {"url": "https://fake-example.xyz/verify", "label": "phish"},
+            {"url": "https://same-example.net/login", "label": "benign"},
+            {"url": "http://same-example.net/login", "label": "phish"},
+            {"url": "https://duplicate-example.org/path", "label": "phish"},
+            {"url": "http://duplicate-example.org/path", "label": "phish"},
+            {"url": "ftp://not-http.example/login", "label": "phish"},
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "external.csv"
+            pd.DataFrame(rows).to_csv(path, index=False)
+            cleaned, diagnostics = load_external_dataset(
+                path,
+                url_column="url",
+                label_column="label",
+                phishing_label="phish",
+                benign_label="benign",
+            )
+
+        self.assertEqual(len(cleaned), 3)
+        self.assertEqual(diagnostics["invalid_or_non_http_url_rows_removed"], 1)
+        self.assertEqual(diagnostics["normalized_label_conflict_rows_removed"], 2)
+        self.assertEqual(diagnostics["normalized_duplicate_rows_removed"], 1)
+        self.assertEqual(diagnostics["class_counts_after_cleaning"], {
+            "benign": 1, "phishing": 2
+        })
 
 
 class DecisionGateTests(unittest.TestCase):
