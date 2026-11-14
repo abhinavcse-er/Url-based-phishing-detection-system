@@ -4,6 +4,7 @@ import numpy as np
 
 from server import ml_inference_gate
 from train_model import (
+    build_model_candidates,
     hostname_group,
     make_grouped_splits,
     select_threshold,
@@ -75,6 +76,39 @@ class GroupedEvaluationTests(unittest.TestCase):
                     continue
                 right_groups = set(group_series.iloc[right_indices])
                 self.assertFalse(left_groups & right_groups)
+
+
+class ModelPipelineSmokeTests(unittest.TestCase):
+    def test_all_candidate_models_fit_and_return_finite_scores(self):
+        legitimate_hosts = [
+            "www.google.com", "github.com", "wikipedia.org", "www.microsoft.com"
+        ]
+        phishing_hosts = [
+            "secure-google-login.evil.xyz",
+            "paypal-verify-account.example.top",
+            "microsoft-password-update.example.click",
+            "signin-wallet-confirm.example.work",
+        ]
+        urls = []
+        targets = []
+        for index in range(48):
+            legitimate_host = legitimate_hosts[index % len(legitimate_hosts)]
+            phishing_host = phishing_hosts[index % len(phishing_hosts)]
+            urls.append(
+                f"https://{legitimate_host}/products/search/item-{index % 12}"
+            )
+            targets.append(0)
+            urls.append(
+                f"http://{phishing_host}/login/verify?account={index % 12}"
+            )
+            targets.append(1)
+
+        for name, candidate in build_model_candidates().items():
+            with self.subTest(candidate=name):
+                candidate.fit(urls, np.asarray(targets, dtype=int))
+                scores = candidate.predict_proba(urls)
+                self.assertEqual(scores.shape, (len(urls), 2))
+                self.assertTrue(np.isfinite(scores).all())
 
 
 class DecisionGateTests(unittest.TestCase):
