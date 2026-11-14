@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("phishguard")
 
-app = FastAPI(title="PhishGuard URL Analysis API", version="3.1.0")
+app = FastAPI(title="PhishGuard URL Analysis API", version="3.2.0")
 
 configured_origins = [item.strip() for item in os.getenv("ALLOWED_ORIGINS", "").split(",") if item.strip()]
 required_origins = ["https://detectphishing.netlify.app", "http://localhost:5500", "http://127.0.0.1:5500"]
@@ -137,17 +137,16 @@ def assess_with_ml(url: str) -> dict:
     if ML_MODEL is None:
         return {"ml_status": "unavailable", "ml_result": None}
     try:
-        probabilities = ML_MODEL.predict_proba([url])[0]
-        classes = list(ML_MODEL.classes_)
-        phishing_index = classes.index(1)
-        phishing_probability = float(probabilities[phishing_index])
-        is_phishing = phishing_probability >= 0.5
+        predicted_label = int(ML_MODEL.predict([url])[0])
+        is_phishing = predicted_label == 1
         return {
             "ml_status": "used",
             "ml_result": {
-                "ml_label": "1" if is_phishing else "0",
-                "ml_label_text": "Likely phishing" if is_phishing else "Likely legitimate",
-                "ml_phishing_probability": round(phishing_probability, 6),
+                "ml_label": str(predicted_label),
+                "ml_label_text": (
+                    "Phishing-like URL pattern" if is_phishing
+                    else "Legitimate-like URL pattern"
+                ),
             },
         }
     except Exception:
@@ -157,19 +156,46 @@ def assess_with_ml(url: str) -> dict:
 
 @app.get("/")
 def root():
-    return {"name": "PhishGuard API", "status": "ok", "docs": "/docs", "ml_model": "loaded" if ML_MODEL else "unavailable"}
+    return {
+        "name": "PhishGuard API",
+        "status": "ok",
+        "docs": "/docs",
+        "ml_model": "loaded" if ML_MODEL is not None else "unavailable",
+    }
 
 
 @app.get("/health")
 def health():
+    test_metrics = ML_METADATA.get("test_metrics", {})
+    calibration_metrics = ML_METADATA.get("calibration_metrics", {})
+    evaluation_available = bool(test_metrics and calibration_metrics)
+
     return {
         "status": "healthy",
         "ml_model": "loaded" if ML_MODEL is not None else "unavailable",
+        "ml_evaluation_status": (
+            "available" if evaluation_available
+            else "retrain_required" if ML_MODEL is not None
+            else "unavailable"
+        ),
         "ml_metrics": {
-            "accuracy": ML_METADATA.get("accuracy"),
-            "f1_phishing": ML_METADATA.get("f1_phishing"),
+            "accuracy": test_metrics.get("accuracy", ML_METADATA.get("accuracy")),
+            "balanced_accuracy": test_metrics.get("balanced_accuracy"),
+            "precision_phishing": test_metrics.get("precision_phishing"),
+            "recall_phishing": test_metrics.get("recall_phishing"),
+            "f1_phishing": test_metrics.get("f1_phishing", ML_METADATA.get("f1_phishing")),
+            "roc_auc": test_metrics.get("roc_auc"),
             "training_sample_rows": ML_METADATA.get("training_sample_rows"),
+            "training_rows": ML_METADATA.get("training_rows"),
+            "calibration_rows": ML_METADATA.get("calibration_rows"),
+            "test_rows": ML_METADATA.get("test_rows"),
+            "training_unique_hosts": ML_METADATA.get("training_unique_hosts"),
+            "calibration_unique_hosts": ML_METADATA.get("calibration_unique_hosts"),
+            "test_unique_hosts": ML_METADATA.get("test_unique_hosts"),
         } if ML_MODEL is not None else None,
+        "ml_calibration": calibration_metrics if ML_MODEL is not None else None,
+        "ml_evaluation_note": ML_METADATA.get("probabilities_are_real_world_prevalence_estimates") is False
+        and "Benchmark calibration only; not a real-world phishing probability." or None,
     }
 
 
