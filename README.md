@@ -127,14 +127,15 @@ For other datasets, set the column names and positive/negative label values expl
 
 ### Production inference release gate
 
-Live ML inference requires **both** environment variables:
+Live ML inference requires all three approval conditions:
 
 - ENABLE_ML_INFERENCE=true
 - ML_EXTERNAL_VALIDATION_APPROVED=true
+- The loaded model artifact must contain release_gate.status=approved and release_gate.passed=true.
 
-Leave both unset or false while external validation is pending. The second variable is an explicit operator approval and must only be enabled after reviewing the independent evaluation report, source and label quality, site overlap, error examples, collection dates, false-positive rate, false-negative rate, and recall. Setting only ENABLE_ML_INFERENCE=true will not enable ML.
+Leave the switches unset or false while external validation is pending. The second environment variable is an explicit operator approval and must only be enabled after reviewing the independent evaluation report, source and label quality, site overlap, error examples, collection dates, false-positive rate, false-negative rate, and recall. The artifact-level approval is a separate safeguard: even if both environment variables are accidentally set, an artifact marked pending_external_validation cannot run inference.
 
-The current training artifact deliberately records release_gate.status=pending_external_validation. Production scans continue to use explainable URL heuristics until an independent evaluation has been reviewed and approved.
+The trainer always writes release_gate.status=pending_external_validation and release_gate.passed=false. A fresh training build therefore re-locks inference; any subsequent approval must be deliberate and tied to that exact model artifact and evaluation report. Production scans continue to use explainable URL heuristics until all three conditions are met.
 
 ## API
 
