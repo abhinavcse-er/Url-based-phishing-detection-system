@@ -15,14 +15,17 @@ SITE_URL = os.getenv(
 )
 API_URL = os.getenv("PHISHING_API_BASE", "https://phishing-backend-2kib.onrender.com").rstrip("/")
 OUTPUT = Path(os.getenv("E2E_REPORT_PATH", "website_e2e_report.json"))
-TEST_URLS = [
-    "https://www.google.com/",
-    "https://www.microsoft.com/",
-    "https://github.com/",
-    "https://www.wikipedia.org/",
-    "https://www.amazon.com/",
-    "https://example.org/",
-    "http://paypal-login-security.example.com/",
+TEST_CASES = [
+    {"url": "https://www.google.com/", "expected": "probably_safe"},
+    {"url": "https://www.microsoft.com/", "expected": "probably_safe"},
+    {"url": "https://github.com/", "expected": "probably_safe"},
+    {"url": "https://www.wikipedia.org/", "expected": "probably_safe"},
+    {"url": "https://www.amazon.com/", "expected": "probably_safe"},
+    {"url": "https://example.org/", "expected": "probably_safe"},
+    {"url": "http://paypal-login-security.example.com/", "expected": "suspicious"},
+    {"url": "https://secure-amazon.com/login", "expected": "suspicious"},
+    {"url": "http://192.0.2.10/login", "expected": "suspicious"},
+    {"url": "https://google.com.login.evil.xyz/", "expected": "likely_phishing"},
 ]
 
 
@@ -84,10 +87,15 @@ def main():
                 "ml_model": health.get("ml_model"),
                 "ml_evaluation_status": health.get("ml_evaluation_status"),
             })
-            record("backend_calibrated_model_loaded", (
+            record("backend_calibrated_model_loaded_but_inference_gated", (
                 health.get("ml_model") == "loaded"
                 and health.get("ml_evaluation_status") == "available"
-            ), {"ml_model": health.get("ml_model"), "evaluation": health.get("ml_evaluation_status")})
+                and health.get("ml_inference_status") == "disabled_pending_external_validation"
+            ), {
+                "ml_model": health.get("ml_model"),
+                "evaluation": health.get("ml_evaluation_status"),
+                "inference": health.get("ml_inference_status"),
+            })
         except Exception as exc:
             record("backend_health_200", False, {"error": str(exc)})
 
@@ -99,8 +107,10 @@ def main():
             "hint": empty_hint
         })
 
-        for test_url in TEST_URLS:
-            test = {"url": test_url}
+        for case in TEST_CASES:
+            test_url = case["url"]
+            expected_label = case["expected"]
+            test = {"url": test_url, "expected_heuristic_label": expected_label}
             try:
                 page.locator("#urlInput").fill(test_url)
                 with page.expect_response(
@@ -119,23 +129,24 @@ def main():
                 test["heuristic_score"] = (body.get("verdict") or {}).get("risk_score")
                 test["heuristic_label"] = (body.get("verdict") or {}).get("label")
                 ml = body.get("ml_result") or {}
-                test["ml_label"] = ml.get("ml_label")
-                test["ml_label_text"] = ml.get("ml_label_text")
                 test["legacy_probability_field_present"] = "ml_phishing_probability" in ml
                 test["browser_result_visible"] = page.locator("#result").inner_text().strip() != ""
                 result_text = page.locator("#result").inner_text()
-                test["ui_shows_ml_prediction"] = "Model prediction:" in result_text
+                test["ui_shows_ml_disabled_notice"] = "Temporarily disabled after external testing" in result_text
                 test["ui_shows_old_probability_copy"] = "Estimated phishing probability" in result_text
                 test["ui_shows_cors_error"] = "Failed to fetch" in result_text or "CORS" in result_text
+                expected_ok = test["heuristic_label"] == expected_label
+                test["expected_heuristic_result"] = expected_ok
                 test["passed"] = (
                     api_response.status == 200
                     and body.get("ok") is True
-                    and body.get("ml_status") == "used"
-                    and bool(ml.get("ml_label_text"))
+                    and body.get("ml_status") == "disabled"
+                    and body.get("ml_result") is None
                     and test["browser_result_visible"]
-                    and test["ui_shows_ml_prediction"]
+                    and test["ui_shows_ml_disabled_notice"]
                     and not test["legacy_probability_field_present"]
                     and not test["ui_shows_old_probability_copy"]
+                    and expected_ok
                 )
                 if not test["passed"]:
                     failures.append("scan_" + test_url)
@@ -193,7 +204,10 @@ def main():
             "http_status": item.get("http_status"),
             "heuristic_score": item.get("heuristic_score"),
             "heuristic_label": item.get("heuristic_label"),
-            "ml_prediction": item.get("ml_label_text"),
+            "ml_status": item.get("ml_status"),
+            "expected_heuristic_label": item.get("expected_heuristic_label"),
+            "heuristic_result": item.get("heuristic_label"),
+            "heuristic_score": item.get("heuristic_score"),
             "legacy_probability_field_present": item.get("legacy_probability_field_present"),
             "error": item.get("error"),
         }))
