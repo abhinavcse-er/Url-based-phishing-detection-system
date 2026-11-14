@@ -23,7 +23,7 @@ DATA_URL = os.getenv(
 DATA_PATH = Path(os.getenv("PHISHING_DATASET_PATH", "/tmp/phishing_url_dataset.csv"))
 MODEL_DIR = Path(os.getenv("MODEL_DIR", "models"))
 MODEL_PATH = MODEL_DIR / "url_phishing_model.joblib"
-MAX_SAMPLES = int(os.getenv("ML_TRAIN_MAX_SAMPLES", "50000"))
+MAX_SAMPLES = max(1000, int(os.getenv("ML_TRAIN_MAX_SAMPLES", "50000")))
 RANDOM_STATE = 42
 
 
@@ -56,11 +56,11 @@ def main():
     # Source: 1=legitimate, 0=phishing. Model: 0=legitimate, 1=phishing.
     frame["target"] = (frame["Label"] == 0).astype(int)
     per_class = max(1, MAX_SAMPLES // 2)
-    sampled = (
-        frame.groupby("target", group_keys=False)
-        .apply(lambda group: group.sample(n=min(len(group), per_class), random_state=RANDOM_STATE))
-        .reset_index(drop=True)
-    )
+    class_sizes = frame["target"].value_counts()
+    per_class = min(per_class, int(class_sizes.min()))
+    sampled = frame.groupby("target", group_keys=False).sample(
+        n=per_class, random_state=RANDOM_STATE
+    ).reset_index(drop=True)
     if sampled["target"].nunique() != 2 or len(sampled) < 1000:
         raise RuntimeError("Not enough balanced labelled URLs to train a useful model.")
 
@@ -88,8 +88,8 @@ def main():
         "accuracy": round(float(accuracy_score(y_test, predictions)), 4),
         "f1_phishing": round(float(f1_score(y_test, predictions, pos_label=1)), 4),
         "classification_report": classification_report(
-            y_test, predictions, target_names=["legitimate", "phishing"], output_dict=True,
-            zero_division=0,
+            y_test, predictions, target_names=["legitimate", "phishing"],
+            output_dict=True, zero_division=0,
         ),
         "label_mapping": {"0": "legitimate", "1": "phishing"},
         "random_state": RANDOM_STATE,
